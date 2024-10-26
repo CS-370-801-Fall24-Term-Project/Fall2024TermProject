@@ -1,4 +1,4 @@
-package com.adafruit.bme680
+package com.adafruit.bme680;
 
 //------------------------------
 // """

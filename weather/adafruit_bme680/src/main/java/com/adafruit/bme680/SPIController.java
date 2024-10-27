@@ -7,6 +7,11 @@ import com.pi4j.io.spi.SpiProvider;
 // import com.pi4j.Pi4J.PiGpio;
 // import com.pi4j.Pi4J.PiGpioSpiProvider;
 
+/**
+ * @author John Maksuta
+ * @since 10/26/2024
+ * Copyright 2024
+ */
 public class SPIController implements AutoCloseable {
 
     // protected final Spi spi;

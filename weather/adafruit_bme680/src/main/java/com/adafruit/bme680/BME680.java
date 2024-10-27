@@ -1,7 +1,5 @@
 package com.adafruit.bme680;
 
-// import java.io.ByteArrayInputStream;
-// import java.lang.Math;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -9,13 +7,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-//------------------------------
-// """
-// import math
-// import struct
-// import time
-// from micropython import const
-//----------------------------
 /**
  * @author John Maksuta
  * @since 10/26/2024
@@ -74,11 +65,11 @@ public class BME680 {
     private final byte _BME68X_VARIANT_GAS_LOW = 0x00;
     private final byte _BME68X_VARIANT_GAS_HIGH = 0x01;
     private final byte _BME68X_HCTRL_MSK = 0x08;
-    private final byte _BME68X_HCTRL_POS = 3;
+    private final int _BME68X_HCTRL_POS = 3;
     private final byte _BME68X_NBCONV_MSK = 0x0F;
 
     private final byte _BME68X_RUN_GAS_MSK = 0x30;
-    private final byte _BME68X_RUN_GAS_POS = 4;
+    private final int _BME68X_RUN_GAS_POS = 4;
     private final byte _BME68X_MODE_MSK = 0x03;
     private final int _BME68X_PERIOD_POLL = 10000;
     private final int _BME68X_REG_CTRL_GAS_0 = 0x70;
@@ -150,19 +141,35 @@ public class BME680 {
         125000.0f
     };
 
-    /**
-     * Macro to set bits data2 = data << bitname_pos set masked bits from data2
-     * in reg_data
-     */
-    public int bme_set_bits(byte reg_data, byte bitname_msk, int bitname_pos, byte data) {
-        return (reg_data & ~bitname_msk) | ((data << bitname_pos) & bitname_msk);
+    // /**
+    //  * Macro to set bits data2 = data << bitname_pos set masked bits from data2
+    //  * in reg_data
+    //  */
+    // public int bme_set_bits(int reg_data, int bitname_msk, int bitname_pos, int data) {
+    //     return (reg_data & ~bitname_msk) | ((data << bitname_pos) & bitname_msk);
+    // }
+
+    public static int bme_set_bits(int reg_data, int bitname_msk, int bitname_pos, int data) {
+        // Shift data to the specified position
+        int shiftedData = data << bitname_pos;
+
+        // Clear the bits in reg_data that need to be set
+        int clearedRegData = reg_data & ~bitname_msk;
+
+        // Set the desired bits in reg_data using the shifted data and mask
+        return clearedRegData | (shiftedData & bitname_msk);
     }
 
-    /**
-     * Macro to set bits starting from position 0 set masked bits from data in
-     * reg_data
-     */
-    public int bme_set_bits_pos_0(byte reg_data, byte bitname_msk, byte data) {
+    // /**
+    //  * Macro to set bits starting from position 0 set masked bits from data in
+    //  * reg_data
+    //  */
+    // public int bme_set_bits_pos_0(byte reg_data, byte bitname_msk, byte data) {
+    //     return (reg_data & ~bitname_msk) | (data & bitname_msk);
+    // }
+
+    public int bme_set_bits_pos_0(int reg_data, int bitname_msk, int data) {
+        // Set masked bits from data in reg_data, starting from position 0
         return (reg_data & ~bitname_msk) | (data & bitname_msk);
     }
 
@@ -609,8 +616,8 @@ public class BME680 {
             return result;
         }
 
-        public void _set_heatr_conf(int heater_temp, int heater_time, boolean enable) {
-            //         # restrict to BME68X_FORCED_MODE
+        public void _set_heatr_conf(int heater_temp, int heater_time, boolean enable) throws Exception {
+            // restrict to BME68X_FORCED_MODE
             int op_mode = _BME68X_FORCED_MODE;
             int nb_conv = 0;
             int hctrl = _BME68X_ENABLE_HEATER;
@@ -620,64 +627,66 @@ public class BME680 {
 
             this._set_op_mode(_BME68X_SLEEP_MODE);
             this._set_conf(heater_temp, heater_time, op_mode);
-//         self._set_conf(heater_temp, heater_time, op_mode)
-//         ctrl_gas_data_0 = self._read_byte(_BME68X_REG_CTRL_GAS_0)
-//         ctrl_gas_data_1 = self._read_byte(_BME68X_REG_CTRL_GAS_1)
-//         if enable:
-//             hctrl = _BME68X_ENABLE_HEATER
-//             if self._chip_variant == _BME68X_VARIANT_GAS_HIGH:
-//                 run_gas = _BME68X_ENABLE_GAS_MEAS_H
-//             else:
-//                 run_gas = _BME68X_ENABLE_GAS_MEAS_L
-//         else:
-//             hctrl = _BME68X_DISABLE_HEATER
-//             run_gas = _BME68X_DISABLE_GAS_MEAS
-//         self._run_gas = ~(run_gas - 1)
+            ctrl_gas_data_0 = this._read_byte(_BME68X_REG_CTRL_GAS_0);
+                    ctrl_gas_data_1 = this._read_byte(_BME68X_REG_CTRL_GAS_1);
+            if (enable) {
+                hctrl = _BME68X_ENABLE_HEATER;
+                if (this._chip_variant == _BME68X_VARIANT_GAS_HIGH) {
+                    run_gas = _BME68X_ENABLE_GAS_MEAS_H;
+                } else {
+                    run_gas = _BME68X_ENABLE_GAS_MEAS_L;
+                }
+            } else {
+                hctrl = _BME68X_DISABLE_HEATER;
+                run_gas = _BME68X_DISABLE_GAS_MEAS;
+            }
+            this._run_gas = ~(run_gas - 1);
 
-//         ctrl_gas_data_0 = bme_set_bits(ctrl_gas_data_0, _BME68X_HCTRL_MSK, _BME68X_HCTRL_POS, hctrl)
-//         ctrl_gas_data_1 = bme_set_bits_pos_0(ctrl_gas_data_1, _BME68X_NBCONV_MSK, nb_conv)
-//         ctrl_gas_data_1 = bme_set_bits(
-//             ctrl_gas_data_1, _BME68X_RUN_GAS_MSK, _BME68X_RUN_GAS_POS, run_gas
-//         )
-//         self._write(_BME68X_REG_CTRL_GAS_0, [ctrl_gas_data_0])
-//         self._write(_BME68X_REG_CTRL_GAS_1, [ctrl_gas_data_1])
+            ctrl_gas_data_0 = bme_set_bits(ctrl_gas_data_0, _BME68X_HCTRL_MSK, _BME68X_HCTRL_POS, hctrl);
+            ctrl_gas_data_1 = bme_set_bits_pos_0(ctrl_gas_data_1, (int)_BME68X_NBCONV_MSK, nb_conv);
+            ctrl_gas_data_1 = bme_set_bits(ctrl_gas_data_1, _BME68X_RUN_GAS_MSK, _BME68X_RUN_GAS_POS, run_gas);
+            this._write(_BME68X_REG_CTRL_GAS_0, new byte[]{(byte)ctrl_gas_data_0});
+            this._write(_BME68X_REG_CTRL_GAS_1, new byte[]{(byte)ctrl_gas_data_1});
         }
 
+        /**
+         * This API is used to set the operation mode of the sensor
+         */
         public void _set_op_mode(int op_mode) {
-//         """
-//         * @brief This API is used to set the operation mode of the sensor
-//         """
-//         tmp_pow_mode: int = 0
-//         pow_mode: int = _BME68X_FORCED_MODE
-//         # Call until in sleep
+            int tmp_pow_mode = 0;
+            int pow_mode = _BME68X_FORCED_MODE;
+            // Call until in sleep
 
-//         # was a do {} while() loop
-//         while pow_mode != _BME68X_SLEEP_MODE:
-//             tmp_pow_mode = self._read_byte(_BME680_REG_CTRL_MEAS)
-//             # Put to sleep before changing mode
-//             pow_mode = tmp_pow_mode & _BME68X_MODE_MSK
-//             if pow_mode != _BME68X_SLEEP_MODE:
-//                 tmp_pow_mode &= ~_BME68X_MODE_MSK  # Set to sleep
-//                 self._write(_BME680_REG_CTRL_MEAS, [tmp_pow_mode])
-//                 # dev->delay_us(_BME68X_PERIOD_POLL, dev->intf_ptr)  # HELP
-//                 delay_microseconds(_BME68X_PERIOD_POLL)
-//         # Already in sleep
-//         if op_mode != _BME68X_SLEEP_MODE:
-//             tmp_pow_mode = (tmp_pow_mode & ~_BME68X_MODE_MSK) | (op_mode & _BME68X_MODE_MSK)
-//             self._write(_BME680_REG_CTRL_MEAS, [tmp_pow_mode])
+            // was a do {} while() loop
+            while (pow_mode != _BME68X_SLEEP_MODE) {
+                tmp_pow_mode = this._read_byte(_BME680_REG_CTRL_MEAS);
+                // Put to sleep before changing mode
+                pow_mode = tmp_pow_mode & _BME68X_MODE_MSK;
+                if (pow_mode != _BME68X_SLEEP_MODE) {
+                    tmp_pow_mode &= ~_BME68X_MODE_MSK;  // Set to sleep
+                    this._write(_BME680_REG_CTRL_MEAS, new byte[]{(byte)tmp_pow_mode});
+                    // dev->delay_us(_BME68X_PERIOD_POLL, dev->intf_ptr)  # HELP
+                    delay_microseconds(_BME68X_PERIOD_POLL);
+                }
+            }
+            // Already in sleep
+            if (op_mode != _BME68X_SLEEP_MODE) {
+                tmp_pow_mode = (tmp_pow_mode & ~_BME68X_MODE_MSK) | (op_mode & _BME68X_MODE_MSK)
+                this._write(_BME680_REG_CTRL_MEAS, new byte[]{(byte)tmp_pow_mode}); 
+            }
         }
 
-        public void _set_conf(int heater_temp, int heater_time, int op_mode) {
-//         """
-//         This internal API is used to set heater configurations
-//         """
-
-//         if op_mode != _BME68X_FORCED_MODE:
-//             raise OSError("GasHeaterException: _set_conf not forced mode")
-//         rh_reg_data: int = self._calc_res_heat(heater_temp)
-//         gw_reg_data: int = self._calc_gas_wait(heater_time)
-//         self._write(_BME680_BME680_RES_HEAT_0, [rh_reg_data])
-//         self._write(_BME680_BME680_GAS_WAIT_0, [gw_reg_data])
+        /**
+         * This internal API is used to set heater configurations
+         */
+        public void _set_conf(int heater_temp, int heater_time, int op_mode) throws Exception {
+            if (op_mode != _BME68X_FORCED_MODE) {
+                throw new Exception("GasHeaterException: _set_conf not forced mode");
+            }
+            int rh_reg_data = this._calc_res_heat(heater_temp);
+            int gw_reg_data = this._calc_gas_wait(heater_time);
+            this._write(_BME680_BME680_RES_HEAT_0, new byte[]{(byte)rh_reg_data});
+            this._write(_BME680_BME680_GAS_WAIT_0, new byte[]{(byte)gw_reg_data});
         }
 
         /**

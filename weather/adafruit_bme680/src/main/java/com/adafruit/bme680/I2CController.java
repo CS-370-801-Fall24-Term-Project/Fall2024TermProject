@@ -6,6 +6,11 @@ import com.pi4j.io.i2c.I2C;
 import com.pi4j.io.i2c.I2CConfig;
 import com.pi4j.io.i2c.I2CProvider;
 
+/**
+ * @author John Maksuta
+ * @since 10/26/2024
+ * Copyright 2024
+ */
 public class I2CController implements AutoCloseable {
 
     private static final byte TCA9534_REG_ADDR_OUT_PORT = 0x01;
@@ -22,19 +27,25 @@ public class I2CController implements AutoCloseable {
         this.i2cConfig = I2C.newConfigBuilder(pi4j).id("TCA9534").bus(1).device(0x3f).build();
     }
 
-    public I2CController(String id, int bus, byte address) {
+    public I2CController(String id, int bus, int address) {
         super();
         this.pi4j = Pi4J.newAutoContext();
         this.i2CProvider = pi4j.provider("linuxfs-i2c");
-        this.i2cConfig = I2C.newConfigBuilder(pi4j).id("TCA9534").bus(1).device(0x3f).build();
+        this.i2cConfig = I2C.newConfigBuilder(pi4j).id(id).bus(bus).device(address).build();
     }
 
     public static void main(String[] args) throws Exception {
-
+        if (args != null && args.length > 0) {
+            StringBuilder builder = new StringBuilder();
+            for (String arg : args) {
+                builder.append(arg);
+            }
+            System.out.printf("I2CController: args=%s\n", builder.toString());
+        }
         // this.pi4j = Pi4J.newAutoContext();
         // I2CProvider i2CProvider = pi4j.provider("linuxfs-i2c");
         // I2CConfig i2cConfig = I2C.newConfigBuilder(pi4j).id("TCA9534").bus(1).device(0x3f).build();
-        I2CController controller = new I2CController();
+        I2CController controller = new I2CController("bcm2835",0,0x77);
         try (final I2C tca9534Dev = controller.i2CProvider.create(controller.i2cConfig)) {
 
             int config = tca9534Dev.readRegister(TCA9534_REG_ADDR_CFG);

@@ -54,8 +54,8 @@ c. Create database and table:
    mysql -u root -p
    
    Then run these SQL commands:
-   CREATE DATABASE sensor_data;
-   USE sensor_data;
+   CREATE DATABASE sensor;
+   USE sensor;
    
    CREATE TABLE sensor_readings (
        id INT AUTO_INCREMENT PRIMARY KEY,

@@ -1,0 +1,162 @@
+BME680 Sensor Logger Setup Guide
+===============================
+
+This guide will help you set up a Raspberry Pi to log BME680 sensor data to a MariaDB database.
+
+1. HARDWARE REQUIREMENTS
+----------------------
+- Raspberry Pi (any modern version)
+- BME680 sensor
+- I2C connections between Pi and sensor
+
+2. INITIAL RASPBERRY PI SETUP
+---------------------------
+a. Enable I2C:
+   sudo raspi-config
+   Navigate to: Interface Options > I2C > Enable
+
+b. Update system:
+   sudo apt update
+   sudo apt upgrade
+
+3. PYTHON VIRTUAL ENVIRONMENT SETUP
+--------------------------------
+a. Install virtual environment:
+   sudo apt install python3-venv
+
+b. Create and activate environment:
+   python3 -m venv ~/env
+   source ~/env/bin/activate
+
+4. INSTALL REQUIRED LIBRARIES
+---------------------------
+a. Install system dependencies:
+   sudo apt install python3-pip
+
+b. Install Blinka (CircuitPython):
+   For detailed Blinka setup, follow Adafruit's guide at:
+   https://learn.adafruit.com/circuitpython-on-raspberrypi-linux/installing-circuitpython-on-raspberry-pi
+
+c. Install required Python packages:
+   pip install adafruit-circuitpython-bme680
+   pip install mysql-connector-python
+
+5. MARIADB SETUP
+--------------
+a. Install MariaDB:
+   sudo apt install mariadb-server mariadb-client
+
+b. Secure MariaDB installation:
+   sudo mysql_secure_installation
+   (Follow prompts to set root password and secure installation)
+
+c. Create database and table:
+   mysql -u root -p
+   
+   Then run these SQL commands:
+   CREATE DATABASE sensor_data;
+   USE sensor_data;
+   
+   CREATE TABLE sensor_readings (
+       id INT AUTO_INCREMENT PRIMARY KEY,
+       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+       temperature FLOAT,
+       humidity FLOAT,
+       pressure FLOAT,
+       gas_value FLOAT,
+       INDEX idx_timestamp (timestamp)
+   );
+   
+   EXIT;
+
+6. SENSOR LOGGING SCRIPT
+----------------------
+a. Create script directory:
+   mkdir ~/Documents/sensor_logger
+
+b. Create the Python script (sensor2db.py):
+   nano ~/Documents/sensor_logger/sensor2db.py
+
+   [Copy and paste the Python script here]
+
+c. Make script executable:
+   chmod +x ~/Documents/sensor_logger/sensor2db.py
+
+7. SYSTEMD SERVICE SETUP
+----------------------
+a. Create service file:
+   sudo nano /etc/systemd/system/sensor_logger.service
+
+b. Add this content (adjust paths as needed):
+   [Unit]
+   Description=BME680 Sensor Logger
+   After=mysql.service
+   Wants=mysql.service
+
+   [Service]
+   Type=simple
+   User=pi
+   Group=pi
+   WorkingDirectory=/home/pi/Documents/sensor_logger
+   Environment="PYTHONUNBUFFERED=1"
+   ExecStart=/home/pi/env/bin/python /home/pi/Documents/sensor_logger/sensor2db.py
+   Restart=on-failure
+   RestartSec=10
+
+   [Install]
+   WantedBy=multi-user.target
+
+c. Enable and start service:
+   sudo systemctl daemon-reload
+   sudo systemctl enable sensor_logger
+   sudo systemctl start sensor_logger
+
+8. VERIFY SETUP
+-------------
+a. Check service status:
+   sudo systemctl status sensor_logger
+
+b. View logs:
+   sudo journalctl -u sensor_logger -f
+
+c. Check database entries:
+   mysql -u root -p
+   USE sensor_data;
+   SELECT * FROM sensor_readings ORDER BY timestamp DESC LIMIT 5;
+
+9. TROUBLESHOOTING
+----------------
+a. If service fails to start:
+   - Check logs: sudo journalctl -u sensor_logger -f
+   - Verify paths in service file match your setup
+   - Ensure database connection details are correct
+   - Check sensor connections
+
+b. If no data is being recorded:
+   - Test script manually: python3 sensor2db.py
+   - Check I2C connection: i2cdetect -y 1
+   - Verify database permissions
+
+c. Common fixes:
+   - Restart service: sudo systemctl restart sensor_logger
+   - Check service logs: sudo journalctl -u sensor_logger -f
+   - Verify database is running: sudo systemctl status mariadb
+
+10. MAINTENANCE
+-------------
+a. Monitor disk space:
+   df -h
+
+b. Check database size:
+   mysql -u root -p -e "SELECT table_schema, 
+   ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS 'Size (MB)' 
+   FROM information_schema.tables 
+   WHERE table_schema = 'sensor_data' 
+   GROUP BY table_schema;"
+
+c. Backup database (recommended weekly):
+   mysqldump -u root -p sensor_data > backup_$(date +%Y%m%d).sql
+
+For additional help or updates, refer to:
+- MariaDB documentation: https://mariadb.org/documentation
+- Adafruit BME680 guide: https://learn.adafruit.com/adafruit-bme680-humidity-temperature-barometic-pressure-voc-gas

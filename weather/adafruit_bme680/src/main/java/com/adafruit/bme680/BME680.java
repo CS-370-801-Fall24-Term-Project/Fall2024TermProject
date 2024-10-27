@@ -755,7 +755,7 @@ public class BME680 {
 
     }
 
-    private class i2cController extends Adafruit_BME680 {
+    public class Adafruit_BME680_I2C extends Adafruit_BME680 {
 
 // class Adafruit_BME680_I2C(Adafruit_BME680):
 //     """Driver for I2C connected BME680.
@@ -806,7 +806,7 @@ public class BME680 {
         private boolean debug = false;
         private int refresh_rate = 10;
 
-        public i2cController(I2CController i2c, int address, boolean debug, int refresh_rate) throws Exception {
+        public Adafruit_BME680_I2C(I2CController i2c, int address, boolean debug, int refresh_rate) throws Exception {
 
 //         """Initialize the I2C device at the 'address' given"""
             // from adafruit_bus_device import (
@@ -839,13 +839,12 @@ public class BME680 {
             return result;
         }
 
+        /**
+         * Writes an array of 'length' bytes to the 'register'
+         */
         public void _write(int register, byte[] values) {
-//         """Writes an array of 'length' bytes to the 'register'"""
             try (final I2CController i2CController = this.i2cController) {
-//             buffer = bytearray(2 * len(values))
-                // for i, value in enumerate(values):
-                //     buffer[2 * i] = register + i
-                //     buffer[2 * i + 1] = value
+
                 byte[] buffer = new byte[2 * values.length];
                 for (int i = 0; i < values.length; i++) {
                     buffer[2 * i] = (byte) (register + i);
@@ -897,35 +896,34 @@ public class BME680 {
 //             pressure = bme680.pressure
 //             altitude = bme680.altitude
 //     """
-        private SPI spi;
+        private SPIController spi;
         private DigitalInOut cs;
         private int baudrate = 100000;
         private boolean debug = false;
         private int refresh_rate = 10;
 
-        public Adafruit_BME680_SPI(SPI spi, DigitalInOut cs, int baudrate) {
-//         spi: SPI,
-//         cs: DigitalInOut,
-//         baudrate: int = 100000,
-//         debug: bool = False,
-//         *,
-//         refresh_rate: int = 10,    
-
+        public Adafruit_BME680_SPI(SPIController spi, DigitalInOut cs, int baudrate) {
 //         from adafruit_bus_device import (
 //             spi_device,
 //         )
+            this.spi = spi;
 //         self._spi = spi_device.SPIDevice(spi, cs, baudrate=baudrate)
-//         self._debug = debug
+            this.debug = debug;
 //         super().__init__(refresh_rate=refresh_rate)
         }
 
         private byte[] read(int register, int length) {
-//         if register != _BME680_REG_STATUS:
+            if (register != _BME680_REG_STATUS) {
 //             # _BME680_REG_STATUS exists in both SPI memory pages
 //             # For all other registers, we must set the correct memory page
 //             self._set_spi_mem_page(register)
+            }
 
-//         register = (register | 0x80) & 0xFF  # Read single, bit 7 high.
+            register = (register | 0x80) & 0xFF; // Read single, bit 7 high.
+            try (final SPIController spi = this.spi) {
+                
+            } catch (Exception e) {
+            }
 //         with self._spi as spi:
 //             spi.write(bytearray([register]))
 //             result = bytearray(length)
@@ -935,7 +933,7 @@ public class BME680 {
 //             return result    
         }
 
-        public void _write(int register, ReadableBuffer values) {
+        public void _write(int register, byte[] values) {
             if (register != _BME680_REG_STATUS) {
                 // _BME680_REG_STATUS exists in both SPI memory pages
                 // For all other registers, we must set the correct memory page
@@ -944,19 +942,16 @@ public class BME680 {
 
             register &= 0x7F;  // Write, bit 7 low.
 
-            try (this.spi) {
+            try (final SPI spi = this.spi) {
                 byte[] buffer = new byte[2 * values.length];
 
                 for (int i = 0; i < values.length; i++) {
-                    value = values[i];
-                    buffer[2 * i] = register + i;
-                    buffer[(2 * i) + 1] = value & 0xFF;
+                    buffer[2 * i] = (byte)(register + i);
+                    buffer[(2 * i) + 1] = (byte)(values[i] & 0xFF);
                 }
                 this.spi.write(buffer);
                 if (this.debug) {
-                    System.out.println(String.format("\t$%f",));
-                    String formattedString = "\t" + String.format("%02X", values[0]) + " <= " + Arrays.toString(Arrays.stream(values, 1, values.length).mapToObj(i -> String.format("%X", i)).toArray(String[]::new));
-//                 print(f"\t${values[0]:02X} <= {[hex(i) for i in values[1:]]}")                
+                    System.out.printf("\t$%02X <= [%s]", values[0], printByteArray(values));
                 }
 
             } catch (Exception e) {

@@ -11,6 +11,11 @@ import com.pi4j.io.spi.SpiMode;
 import com.pi4j.util.Console;
 import com.pi4j.util.StringUtil;
 
+/**
+ * @author John Maksuta
+ * @since 10/26/2024
+ * Copyright 2024
+ */
 public class SPITest {
 
     private static final SpiBus spiBus = SpiBus.BUS_0;

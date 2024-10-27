@@ -18,7 +18,8 @@ import java.util.stream.Collectors;
 //----------------------------
 /**
  * @author John Maksuta
- * @Copyright 10/26/2024
+ * @since 10/26/2024
+ * Copyright 2024
  *
  * Created based on an original Python code "adafruit_bme680" by 2017 ladyada
  * for Adafruit Industries under license MIT AND BSD-3-Clause

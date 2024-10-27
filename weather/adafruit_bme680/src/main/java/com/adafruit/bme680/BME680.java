@@ -351,7 +351,7 @@ public class BME680 {
             var2 = (var2 * this._pressure_calibration[5]) / 4f;
             var2 = var2 + (var1 * this._pressure_calibration[4] * 2f);
             var2 = (var2 / 4f) + (this._pressure_calibration[3] * 65536f);
-        
+
             var1 = ((((var1 / 4f) * (var1 / 4f)) / 8192f) * (this._pressure_calibration[2] * 32f) / 8f) + ((this._pressure_calibration[1] * var1) / 2f);
             var1 = var1 / 262144f;
             var1 = ((32768 + var1) * this._pressure_calibration[0]) / 32768f;
@@ -361,7 +361,7 @@ public class BME680 {
 
             var1 = (this._pressure_calibration[8] * (((calc_pres / 8) * (calc_pres / 8f)) / 8192f)) / 4096f;
             var2 = ((calc_pres / 4f) * this._pressure_calibration[7]) / 8192f;
-            float var3 = (((float)Math.pow((calc_pres / 256f), 3f)) * this._pressure_calibration[9]) / 131072f;
+            float var3 = (((float) Math.pow((calc_pres / 256f), 3f)) * this._pressure_calibration[9]) / 131072f;
             calc_pres += (var1 + var2 + var3 + (this._pressure_calibration[6] * 128f)) / 16f;
 
             return calc_pres / 100;
@@ -443,19 +443,20 @@ public class BME680 {
             }
             // set filter
             this._write(_BME680_REG_CONFIG, new byte[]{this._filter << 2});
-        // turn on temp oversample & pressure oversample
-        this._write(
+            // turn on temp oversample & pressure oversample
+            this._write(
                     _BME680_REG_CTRL_MEAS, new byte[]{(this._temp_oversample << 5) | (this._pressure_oversample << 2)}
-        );
-        // turn on humidity oversample
-        this._write(_BME680_REG_CTRL_HUM, [this._humidity_oversample]
+            );
+            // turn on humidity oversample
+            this._write(_BME680_REG_CTRL_HUM, [this._humidity_oversample]
             );
         // gas measurements enabled
         if (this._chip_variant == 0x01) {
                 this._write(_BME680_REG_CTRL_GAS, [(this._run_gas & _BME680_RUNGAS) << 1]  
-            );
+              );
         } else {
             this._write(_BME680_REG_CTRL_GAS, [(this._run_gas & _BME680_RUNGAS)]
+            
             
             );
         }
@@ -487,9 +488,9 @@ public class BME680 {
             var2 = (var1 * this._temp_calibration[1]) / 2048;
             var3 = ((var1 / 2) * (var1 / 2)) / 4096;
             var3 = (var3 * this._temp_calibration[2] * 16) / 16384;
-            this._t_fine = (int)(var2 + var3);
-
+            this._t_fine = (int) (var2 + var3);
         
+
         );
     }
 
@@ -736,7 +737,6 @@ public class BME680 {
 //         return durval
         }
 
-        
         public String printByteArray(byte[] values) {
             StringBuilder sb = new StringBuilder();
             sb.append("\t$").append(String.format("%02X", values[0]));
@@ -751,7 +751,6 @@ public class BME680 {
             return sb.toString();
             // System.out.println(sb.toString());
         }
-
 
     }
 
@@ -801,12 +800,12 @@ public class BME680 {
 //         self._i2c = i2c_device.I2CDevice(i2c, address)
 //         self._debug = debug
 //         super().__init__(refresh_rate=refresh_rate)
-        private I2C _i2c;
+        private I2CController _i2c;
         private int address = 0x77;
         private boolean debug = false;
         private int refresh_rate = 10;
 
-        public Adafruit_BME680_I2C(I2C i2c, int address, boolean debug, int refresh_rate) throws Exception {
+        public Adafruit_BME680_I2C(I2CController i2c, int address, boolean debug, int refresh_rate) throws Exception {
 
 //         """Initialize the I2C device at the 'address' given"""
             // from adafruit_bus_device import (
@@ -822,32 +821,39 @@ public class BME680 {
          * Returns an array of 'length' bytes from the 'register'
          */
         public byte[] _read(int register, int length) {
-//         """"""
-//         with self._i2c as i2c:
+            byte[] result = new byte[]{};
+            try (this._i2c) {
+                byte[] toWrite = new byte[]{(byte) (register & 0xFF)};
+                this._i2c.write(toWrite);
 //             i2c.write(bytes([register & 0xFF]))
-//             result = bytearray(length)
-//             i2c.readinto(result)
-//             if self._debug:
-//                 print(f"\t${register:02X} => {[hex(i) for i in result]}")
-//             return result
+                result = new byte[length];
+                this._i2c.readInto(result);
+                if (this.debug) {
+                    System.out.printf("\t$%02X <= [%s]", register, printByteArray(result));
+                }
+
+            } catch (Exception e) {
+
+            }
+            return result;
         }
 
         public void _write(int register, byte[] values) {
 //         """Writes an array of 'length' bytes to the 'register'"""
             try (this._i2c) {
 //             buffer = bytearray(2 * len(values))
-            // for i, value in enumerate(values):
-            //     buffer[2 * i] = register + i
-            //     buffer[2 * i + 1] = value
-            byte[] buffer = new byte[2 * values.length];
-            for (int i = 0; i < values.length; i++) {
-                buffer[2 * i] = (byte) (register + i);
-                buffer[2 * i + 1] = (byte) values[i];
-            }
-            this._i2c.write(buffer);
-            if (this.debug) {
-                System.out.printf("\t$%02X <= [%s]", values[0], printByteArray(values));
-            }
+                // for i, value in enumerate(values):
+                //     buffer[2 * i] = register + i
+                //     buffer[2 * i + 1] = value
+                byte[] buffer = new byte[2 * values.length];
+                for (int i = 0; i < values.length; i++) {
+                    buffer[2 * i] = (byte) (register + i);
+                    buffer[2 * i + 1] = (byte) values[i];
+                }
+                this._i2c.write(buffer);
+                if (this.debug) {
+                    System.out.printf("\t$%02X <= [%s]", values[0], printByteArray(values));
+                }
 
             } catch (Exception e) {
 
@@ -855,8 +861,6 @@ public class BME680 {
         }
 
     }
-
-
 
     public class Adafruit_BME680_SPI extends Adafruit_BME680 {
 // class Adafruit_BME680_SPI(Adafruit_BME680):

@@ -22,12 +22,19 @@ public class I2CController implements AutoCloseable {
         this.i2cConfig = I2C.newConfigBuilder(pi4j).id("TCA9534").bus(1).device(0x3f).build();
     }
 
+    public I2CController(String id, int bus, byte address) {
+        super();
+        this.pi4j = Pi4J.newAutoContext();
+        this.i2CProvider = pi4j.provider("linuxfs-i2c");
+        this.i2cConfig = I2C.newConfigBuilder(pi4j).id("TCA9534").bus(1).device(0x3f).build();
+    }
+
     public static void main(String[] args) throws Exception {
 
         // this.pi4j = Pi4J.newAutoContext();
         // I2CProvider i2CProvider = pi4j.provider("linuxfs-i2c");
         // I2CConfig i2cConfig = I2C.newConfigBuilder(pi4j).id("TCA9534").bus(1).device(0x3f).build();
-        try (I2C tca9534Dev = i2CProvider.create(i2cConfig)) {
+        try (final I2C tca9534Dev = this.i2CProvider.create(i2cConfig)) {
 
             int config = tca9534Dev.readRegister(TCA9534_REG_ADDR_CFG);
             if (config < 0) {
@@ -90,6 +97,72 @@ public class I2CController implements AutoCloseable {
     public void close() throws Exception {
         // throw new UnsupportedOperationException("Not supported yet.");
         pi4j.shutdown();
+    }
+
+    void write(byte[] buffer) throws Exception {
+        try (I2C tca9534Dev = i2CProvider.create(i2cConfig)) {
+
+            int config = tca9534Dev.readRegister(TCA9534_REG_ADDR_CFG);
+            if (config < 0) {
+                throw new IllegalStateException(
+                        "Failed to read configuration from address 0x" + String.format("%02x", TCA9534_REG_ADDR_CFG));
+            }
+
+            byte currentState = (byte) tca9534Dev.readRegister(TCA9534_REG_ADDR_OUT_PORT);
+
+            if (config != 0x00) {
+                System.out.println("TCA9534 is not configured as OUTPUT, setting register 0x" + String
+                        .format("%02x", TCA9534_REG_ADDR_CFG) + " to 0x00");
+                currentState = 0x00;
+                tca9534Dev.writeRegister(TCA9534_REG_ADDR_OUT_PORT, currentState);
+                tca9534Dev.writeRegister(TCA9534_REG_ADDR_CFG, (byte) 0x00);
+            }
+
+            // bit 8, is pin 1 on the board itself, so set pins in reverse:
+            currentState = setPin(currentState, 8, tca9534Dev, true);
+            Thread.sleep(500);
+            currentState = setPin(currentState, 8, tca9534Dev, false);
+            Thread.sleep(500);
+
+            currentState = setPin(currentState, 7, tca9534Dev, true);
+            Thread.sleep(500);
+            currentState = setPin(currentState, 7, tca9534Dev, false);
+            Thread.sleep(500);
+        }
+        // throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public void readInto(byte[] buffer) throws Exception {
+        try (I2C tca9534Dev = i2CProvider.create(i2cConfig)) {
+
+            int config = tca9534Dev.readRegister(TCA9534_REG_ADDR_CFG);
+            if (config < 0) {
+                throw new IllegalStateException(
+                        "Failed to read configuration from address 0x" + String.format("%02x", TCA9534_REG_ADDR_CFG));
+            }
+
+            byte currentState = (byte) tca9534Dev.readRegister(TCA9534_REG_ADDR_OUT_PORT);
+
+            if (config != 0x00) {
+                System.out.println("TCA9534 is not configured as OUTPUT, setting register 0x" + String
+                        .format("%02x", TCA9534_REG_ADDR_CFG) + " to 0x00");
+                currentState = 0x00;
+                tca9534Dev.writeRegister(TCA9534_REG_ADDR_OUT_PORT, currentState);
+                tca9534Dev.writeRegister(TCA9534_REG_ADDR_CFG, (byte) 0x00);
+            }
+
+            // bit 8, is pin 1 on the board itself, so set pins in reverse:
+            currentState = setPin(currentState, 8, tca9534Dev, true);
+            Thread.sleep(500);
+            currentState = setPin(currentState, 8, tca9534Dev, false);
+            Thread.sleep(500);
+
+            currentState = setPin(currentState, 7, tca9534Dev, true);
+            Thread.sleep(500);
+            currentState = setPin(currentState, 7, tca9534Dev, false);
+            Thread.sleep(500);
+        }
+        // throw new UnsupportedOperationException("Not supported yet.");
     }
 
 }

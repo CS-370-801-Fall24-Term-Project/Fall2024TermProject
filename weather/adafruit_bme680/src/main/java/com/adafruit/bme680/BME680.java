@@ -221,7 +221,7 @@ public class BME680 {
          */
         public Adafruit_BME680(int refresh_rate) throws Exception {
             // Check the BME680 was found, read the coefficients and enable the sensor for continuous reads.
-            this._write(_BME680_REG_SOFTRESET, new byte[]{0xB6});
+            this._write((int)_BME680_REG_SOFTRESET, new byte[]{0xB6});
             Thread.sleep(5);
 
             // Check device ID.
@@ -371,7 +371,7 @@ public class BME680 {
          * The relative humidity in RH %
          */
         public float relative_humidity() {
-            return this.humidity;
+            return this.humidity();
         }
 
         /**
@@ -406,7 +406,7 @@ public class BME680 {
          * time)
          */
         public float altitude() {
-            float pressure = this.pressure;  // in Si units for hPascal
+            float pressure = this.pressure();  // in Si units for hPascal
             return 44330 * (1.0 - Math.pow(pressure / this.sea_level_pressure, 0.1903));
         }
 
@@ -415,6 +415,7 @@ public class BME680 {
          */
         public int gas() {
             this._perform_reading();
+            float calc_gas_res = 0f;
             if (this._chip_variant == 0x01) {
                 // taken from https://github.com/BoschSensortec/BME68x-Sensor-API
                 float var1 = 262144 >> this._gas_range;
@@ -754,7 +755,7 @@ public class BME680 {
 
     }
 
-    private class Adafruit_BME680_I2C extends Adafruit_BME680 {
+    private class i2cController extends Adafruit_BME680 {
 
 // class Adafruit_BME680_I2C(Adafruit_BME680):
 //     """Driver for I2C connected BME680.
@@ -800,19 +801,19 @@ public class BME680 {
 //         self._i2c = i2c_device.I2CDevice(i2c, address)
 //         self._debug = debug
 //         super().__init__(refresh_rate=refresh_rate)
-        private I2CController _i2c;
+        private I2CController i2cController;
         private int address = 0x77;
         private boolean debug = false;
         private int refresh_rate = 10;
 
-        public Adafruit_BME680_I2C(I2CController i2c, int address, boolean debug, int refresh_rate) throws Exception {
+        public i2cController(I2CController i2c, int address, boolean debug, int refresh_rate) throws Exception {
 
 //         """Initialize the I2C device at the 'address' given"""
             // from adafruit_bus_device import (
             //     i2c_device,
             // )s
             super(refresh_rate);
-            this._i2c = i2c_device.I2CDevice(i2c, address);
+            this.i2cController = i2c_device.I2CDevice(i2c, address);
             this.debug = debug;
             this.refresh_rate = refresh_rate;
         }
@@ -822,12 +823,12 @@ public class BME680 {
          */
         public byte[] _read(int register, int length) {
             byte[] result = new byte[]{};
-            try (this._i2c) {
+            try (final I2CController i2cController = this.i2cController) {
                 byte[] toWrite = new byte[]{(byte) (register & 0xFF)};
-                this._i2c.write(toWrite);
+                i2cController.write(toWrite);
 //             i2c.write(bytes([register & 0xFF]))
                 result = new byte[length];
-                this._i2c.readInto(result);
+                i2cController.readInto(result);
                 if (this.debug) {
                     System.out.printf("\t$%02X <= [%s]", register, printByteArray(result));
                 }
@@ -840,7 +841,7 @@ public class BME680 {
 
         public void _write(int register, byte[] values) {
 //         """Writes an array of 'length' bytes to the 'register'"""
-            try (this._i2c) {
+            try (final I2CController i2CController = this.i2cController) {
 //             buffer = bytearray(2 * len(values))
                 // for i, value in enumerate(values):
                 //     buffer[2 * i] = register + i
@@ -850,7 +851,7 @@ public class BME680 {
                     buffer[2 * i] = (byte) (register + i);
                     buffer[2 * i + 1] = (byte) values[i];
                 }
-                this._i2c.write(buffer);
+                i2cController.write(buffer);
                 if (this.debug) {
                     System.out.printf("\t$%02X <= [%s]", values[0], printByteArray(values));
                 }

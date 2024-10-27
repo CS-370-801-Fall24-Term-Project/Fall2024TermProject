@@ -1,10 +1,13 @@
 package com.adafruit.bme680;
 
-import java.io.ByteArrayInputStream;
-import java.lang.Math;
+// import java.io.ByteArrayInputStream;
+// import java.lang.Math;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 //------------------------------
 // """
@@ -196,20 +199,26 @@ public class BME680 {
 
         // Gas measurements, as a mask applied to _BME680_RUNGAS
         public int _run_gas;
-        public Byte _adc_pres;
-        public Byte _adc_temp;
-        public Byte _adc_hum;
-        public Byte _adc_gas;
-        public Byte _gas_range;
-        public Byte _t_fine;
+        public float _adc_pres;
+        public float _adc_temp;
+        public float _adc_hum;
+        public int _adc_gas;
+        public int _gas_range;
+        public Integer _t_fine;
 
-        public int _last_reading;
+        public long _last_reading;
         public int _min_refresh_time;
 
         public int _amb_temp;
 
+        public float[] _temp_calibration;
         public float[] _pressure_calibration;
         public float[] _humidity_calibration;
+        public float[] _gas_calibration;
+
+        public int _heat_range;
+        public int _heat_val;
+        public int _sw_err;
 
         public Adafruit_BME680() throws Exception {
             this(10);
@@ -221,7 +230,7 @@ public class BME680 {
          */
         public Adafruit_BME680(int refresh_rate) throws Exception {
             // Check the BME680 was found, read the coefficients and enable the sensor for continuous reads.
-            this._write((int)_BME680_REG_SOFTRESET, new byte[]{0xB6});
+            this._write((int) _BME680_REG_SOFTRESET, new byte[]{(byte) 0xB6});
             Thread.sleep(5);
 
             // Check device ID.
@@ -250,14 +259,14 @@ public class BME680 {
 
             //         # Gas measurements, as a mask applied to _BME680_RUNGAS
             this._run_gas = 0xFF;
-            this._adc_pres = null;
-            this._adc_temp = null;
-            this._adc_hum = null;
-            this._adc_gas = null;
-            this._gas_range = null;
-            this._t_fine = null;
+            this._adc_pres = 0;
+            this._adc_temp = 0;
+            this._adc_hum = 0;
+            this._adc_gas = 0;
+            this._gas_range = 0;
+            this._t_fine = 0;
 
-            this._last_reading = 0;
+            this._last_reading = 0L;
             this._min_refresh_time = 1 / refresh_rate;
 
             this._amb_temp = 25; // Copy required parameters from reference bme68x_dev struct
@@ -334,8 +343,7 @@ public class BME680 {
         /**
          * The compensated temperature in degrees Celsius.
          */
-        public float temperature() {
-//         """"""
+        public float temperature() throws Exception {
             this._perform_reading();
             float calc_temp = ((this._t_fine * 5) + 128) / 256;
             return calc_temp / 100;
@@ -344,7 +352,7 @@ public class BME680 {
         /**
          * The barometric pressure in hectoPascals
          */
-        public float pressure() {
+        public float pressure() throws Exception {
             this._perform_reading();
             float var1 = (this._t_fine / 2f) - 64000f;
             float var2 = ((var1 / 4f) * (var1 / 4f)) / 2048f;
@@ -370,15 +378,14 @@ public class BME680 {
         /**
          * The relative humidity in RH %
          */
-        public float relative_humidity() {
+        public float relative_humidity() throws Exception {
             return this.humidity();
         }
 
         /**
          * The relative humidity in RH %
          */
-        public float humidity() {
-
+        public float humidity() throws Exception {
             this._perform_reading();
             float temp_scaled = ((this._t_fine * 5) + 128) / 256;
             float var1 = (this._adc_hum - (this._humidity_calibration[0] * 16)) - ((temp_scaled * this._humidity_calibration[2]) / 200);
@@ -405,15 +412,15 @@ public class BME680 {
          * pressure (:attr:`sea_level_pressure`) - which you must enter ahead of
          * time)
          */
-        public float altitude() {
+        public float altitude() throws Exception {
             float pressure = this.pressure();  // in Si units for hPascal
-            return 44330 * (1.0 - Math.pow(pressure / this.sea_level_pressure, 0.1903));
+            return (float) (44330 * (1.0 - Math.pow(pressure / this.sea_level_pressure, 0.1903)));
         }
 
         /**
          * The gas resistance in ohms
          */
-        public int gas() {
+        public int gas() throws Exception {
             this._perform_reading();
             float calc_gas_res = 0f;
             if (this._chip_variant == 0x01) {
@@ -437,70 +444,63 @@ public class BME680 {
          * Perform a single-shot reading from the sensor and fill internal data
          * structure for calculations
          */
-        public void _perform_reading() {
+        public void _perform_reading() throws Exception {
             long now = System.nanoTime();
             if (now - this._last_reading < this._min_refresh_time) {
                 return;
             }
             // set filter
-            this._write(_BME680_REG_CONFIG, new byte[]{this._filter << 2});
+            this._write(_BME680_REG_CONFIG, new byte[]{(byte) (this._filter << 2)});
             // turn on temp oversample & pressure oversample
             this._write(
-                    _BME680_REG_CTRL_MEAS, new byte[]{(this._temp_oversample << 5) | (this._pressure_oversample << 2)}
+                    _BME680_REG_CTRL_MEAS, new byte[]{(byte) ((this._temp_oversample << 5) | (this._pressure_oversample << 2))}
             );
             // turn on humidity oversample
-            this._write(_BME680_REG_CTRL_HUM, [this._humidity_oversample]
+            this._write(_BME680_REG_CTRL_HUM, new byte[]{(byte) this._humidity_oversample}
             );
-        // gas measurements enabled
-        if (this._chip_variant == 0x01) {
-                this._write(_BME680_REG_CTRL_GAS, [(this._run_gas & _BME680_RUNGAS) << 1]  
-              );
-        } else {
-            this._write(_BME680_REG_CTRL_GAS, [(this._run_gas & _BME680_RUNGAS)]
-            
-            
-            );
-        }
-        ctrl = this._read_byte(_BME680_REG_CTRL_MEAS);
+            // gas measurements enabled
+            if (this._chip_variant == 0x01) {
+                this._write(_BME680_REG_CTRL_GAS, new byte[]{(byte) ((this._run_gas & _BME680_RUNGAS) << 1)});
+            } else {
+                this._write(_BME680_REG_CTRL_GAS, new byte[]{(byte) (this._run_gas & _BME680_RUNGAS)});
+            }
+            int ctrl = this._read_byte(_BME680_REG_CTRL_MEAS);
             ctrl = (ctrl & 0xFC) | 0x01; // enable single shot!
-            this._write(_BME680_REG_CTRL_MEAS, [ctrl]
-            );
-        new_data = false;
+            this._write(_BME680_REG_CTRL_MEAS, new byte[]{(byte) ctrl});
+            boolean new_data = false;
+            byte[] data = new byte[]{};
             while (!new_data) {
                 data = this._read(_BME680_REG_MEAS_STATUS, 17);
-                new_data = data[0] & 0x80 != 0;
+                new_data = ((data[0] & 0x80) != 0);
                 Thread.sleep(5); // 5 milliseconds
             }
             this._last_reading = System.nanoTime();
-            this._adc_pres = (short) (_read24(Arrays.copyOfRange(data, 2, 5)) / 16);
-            this._adc_temp = (short) (_read24(Arrays.copyOfRange(data, 5, 8)) / 16);
+            this._adc_pres = (_read24(Arrays.copyOfRange(data, 2, 5)) / 16);
+            this._adc_temp = (_read24(Arrays.copyOfRange(data, 5, 8)) / 16);
 
             this._adc_hum = (short) ByteBuffer.wrap(Arrays.copyOfRange(data, 8, 10)).order(ByteOrder.BIG_ENDIAN).getShort();
 
             if (this._chip_variant == 0x01) {
                 this._adc_gas = (int) (ByteBuffer.wrap(Arrays.copyOfRange(data, 15, 17)).order(ByteOrder.BIG_ENDIAN).getShort() / 64);
-                this._gas_range = data[16] & 0x0F;
+                this._gas_range = (data[16] & 0x0F);
             } else {
                 this._adc_gas = (int) (ByteBuffer.wrap(Arrays.copyOfRange(data, 13, 15)).order(ByteOrder.BIG_ENDIAN).getShort() / 64);
-                this._gas_range = data[14] & 0x0F;
+                this._gas_range = (data[14] & 0x0F);
             }
 
-            var1 = (this._adc_temp / 8) - (this._temp_calibration[0] * 2);
-            var2 = (var1 * this._temp_calibration[1]) / 2048;
-            var3 = ((var1 / 2) * (var1 / 2)) / 4096;
+            float var1 = (this._adc_temp / 8) - (this._temp_calibration[0] * 2);
+            float var2 = (var1 * this._temp_calibration[1]) / 2048;
+            float var3 = ((var1 / 2) * (var1 / 2)) / 4096;
             var3 = (var3 * this._temp_calibration[2] * 16) / 16384;
             this._t_fine = (int) (var2 + var3);
-        
+        }
 
-        );
-    }
-
-    /**
-     * Read & save the calibration coefficients
-     */
-    public void _read_calibration() {
-            byte[] coeff1 = self._read(_BME680_BME680_COEFF_ADDR1, 25);
-            byte[] coeff2 = self._read(_BME680_BME680_COEFF_ADDR2, 16);
+        /**
+         * Read & save the calibration coefficients
+         */
+        public void _read_calibration() {
+            byte[] coeff1 = this._read(_BME680_BME680_COEFF_ADDR1, 25);
+            byte[] coeff2 = this._read(_BME680_BME680_COEFF_ADDR2, 16);
 
             byte[] coeff = new byte[coeff1.length + coeff2.length];
             System.arraycopy(coeff1, 0, coeff, 0, coeff1.length);
@@ -516,11 +516,11 @@ public class BME680 {
             byte[] coeffBytes = Arrays.copyOfRange(coeff, 1, 39);
             List<Number> coeffList = unpackArray(coeffBytes);
 
-            this.floatCoeffList = coeffList.stream().map(Number::floatValue).collect(Collectors.toList());
-            this._temp_calibration = Arrays.asList(floatCoeffList.get(23), floatCoeffList.get(0), floatCoeffList.get(1));
-            this._pressure_calibration = Arrays.asList(floatCoeffList.get(3), floatCoeffList.get(4), floatCoeffList.get(5), floatCoeffList.get(7), floatCoeffList.get(8), floatCoeffList.get(10), floatCoeffList.get(9), floatCoeffList.get(12), floatCoeffList.get(13), floatCoeffList.get(14));
-            this._humidity_calibration = Arrays.asList(floatCoeffList.get(17), floatCoeffList.get(16), floatCoeffList.get(18), floatCoeffList.get(19), floatCoeffList.get(20), floatCoeffList.get(21), floatCoeffList.get(22));
-            this._gas_calibration = Arrays.asList(floatCoeffList.get(25), floatCoeffList.get(24), floatCoeffList.get(26));
+            List<Float> floatCoeffList = coeffList.stream().map(Number::floatValue).collect(Collectors.toList());
+            this._temp_calibration = new float[]{floatCoeffList.get(23), floatCoeffList.get(0), floatCoeffList.get(1)};
+            this._pressure_calibration = new float[]{floatCoeffList.get(3), floatCoeffList.get(4), floatCoeffList.get(5), floatCoeffList.get(7), floatCoeffList.get(8), floatCoeffList.get(10), floatCoeffList.get(9), floatCoeffList.get(12), floatCoeffList.get(13), floatCoeffList.get(14)};
+            this._humidity_calibration = new float[]{floatCoeffList.get(17), floatCoeffList.get(16), floatCoeffList.get(18), floatCoeffList.get(19), floatCoeffList.get(20), floatCoeffList.get(21), floatCoeffList.get(22)};
+            this._gas_calibration = new float[]{floatCoeffList.get(25), floatCoeffList.get(24), floatCoeffList.get(26)};
 
             // flip around H1 & H2
             this._humidity_calibration[1] *= 16;
@@ -529,7 +529,7 @@ public class BME680 {
 
             this._heat_range = (this._read_byte(0x02) & 0x30) / 16;
             this._heat_val = this._read_byte(0x00);
-            this._sw_err = (this._read_byte(0x04) & 0xF0) / 16
+            this._sw_err = (this._read_byte(0x04) & 0xF0) / 16;
         }
 
         private List<Number> unpackArray(byte[] coeff) {
@@ -562,6 +562,7 @@ public class BME680 {
             short y = byteBuffer.getShort();
 
             List<Number> coeffList = Arrays.asList(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y);
+            return coeffList;
         }
 
         /**
@@ -590,14 +591,14 @@ public class BME680 {
          * @param heater_time Time to keep heater on in milliseconds
          * @return True on success, False on failure
          */
-        public boolean set_gas_heater(int heater_temp, int heater_time) {
+        public boolean set_gas_heater(Integer heater_temp, Integer heater_time) {
             boolean result = false;
             try {
                 if ((heater_temp == null) || (heater_time == null)) {
                     boolean enable = false;
-                    this._set_heatr_conf((heater_temp || 0), (heater_time || 0), enable);
+                    this._set_heatr_conf(((heater_temp != null) ? heater_temp : 0), ((heater_time != null) ? heater_time : 0), enable);
                 } else {
-                    this._set_heatr_conf(heater_temp, heater_time);
+                    this._set_heatr_conf(heater_temp, heater_time, true);
                 }
                 result = true;
 
@@ -678,64 +679,67 @@ public class BME680 {
 //         self._write(_BME680_BME680_GAS_WAIT_0, [gw_reg_data])
         }
 
+        /**
+         * This internal API is used to calculate the heater resistance value
+         * using float
+         */
         public int _calc_res_heat(int temp) {
-//         """
-//         This internal API is used to calculate the heater resistance value using float
-//         """
-//         gh1: int = self._gas_calibration[0]
-//         gh2: int = self._gas_calibration[1]
-//         gh3: int = self._gas_calibration[2]
-//         htr: int = self._heat_range
-//         htv: int = self._heat_val
-//         amb: int = self._amb_temp
-
-//         temp = min(temp, 400)  # Cap temperature
-//         var1: int = ((int(amb) * gh3) / 1000) * 256
-//         var2: int = (gh1 + 784) * (((((gh2 + 154009) * temp * 5) / 100) + 3276800) / 10)
-//         var3: int = var1 + (var2 / 2)
-//         var4: int = var3 / (htr + 4)
-//         var5: int = (131 * htv) + 65536
-//         heatr_res_x100: int = int(((var4 / var5) - 250) * 34)
-//         heatr_res: int = int((heatr_res_x100 + 50) / 100)
-//         return heatr_res
-        }
-
-        public int _calc_res_heat(int temp) {
-//         """
-//         This internal API is used to calculate the heater resistance value
-//         """
             float gh1 = this._gas_calibration[0];
-//         gh1: float = float(self._gas_calibration[0])
-//         gh2: float = float(self._gas_calibration[1])
-//         gh3: float = float(self._gas_calibration[2])
-//         htr: float = float(self._heat_range)
-//         htv: float = float(self._heat_val)
-//         amb: float = float(self._amb_temp)
+            float gh2 = this._gas_calibration[1];
+            float gh3 = this._gas_calibration[2];
+            int htr = this._heat_range;
+            int htv = this._heat_val;
+            int amb = this._amb_temp;
 
-//         temp = min(temp, 400)  # Cap temperature
-//         var1: float = (gh1 / (16.0)) + 49.0
-//         var2: float = ((gh2 / (32768.0)) * (0.0005)) + 0.00235
-//         var3: float = gh3 / (1024.0)
-//         var4: float = var1 * (1.0 + (var2 * float(temp)))
-//         var5: float = var4 + (var3 * amb)
-//         res_heat: int = int(3.4 * ((var5 * (4 / (4 + htr)) * (1 / (1 + (htv * 0.002)))) - 25))
-//         return res_heat
+            temp = Math.min(temp, 400); // Cap temperature
+            int var1 = (int) (((int) (amb) * gh3) / 1000) * 256;
+            int var2 = (int) ((gh1 + 784) * (((((gh2 + 154009) * temp * 5) / 100) + 3276800) / 10));
+            int var3 = var1 + (var2 / 2);
+            int var4 = var3 / (htr + 4);
+            int var5 = (131 * htv) + 65536;
+            int heatr_res_x100 = (int) (((var4 / var5) - 250) * 34);
+            int heatr_res = (int) ((heatr_res_x100 + 50) / 100);
+            return heatr_res;
         }
 
-        public int _calc_gas_wait(int dur) {
-//         """
-//         This internal API is used to calculate the gas wait
-//         """
-//         factor: int = 0
-//         durval: int = 0xFF  # Max duration
+        /**
+         * This internal API is used to calculate the heater resistance value
+         */
+        public int _calc_res_heat(float temp) {
+            float gh1 = this._gas_calibration[0];
+            float gh2 = this._gas_calibration[1];
+            float gh3 = this._gas_calibration[2];
+            float htr = this._heat_range;
+            float htv = this._heat_val;
+            float amb = this._amb_temp;
 
-//         if dur >= 0xFC0:
-//             return durval
-//         while dur > 0x3F:
-//             dur = dur / 4
-//             factor += 1
-//         durval = int(dur + (factor * 64))
-//         return durval
+            temp = Math.min(temp, 400); // Cap temperature
+            float var1 = (gh1 / (16.0f)) + 49.0f;
+            float var2 = ((gh2 / (32768.0f)) * (0.0005f)) + 0.00235f;
+            float var3 = gh3 / (1024.0f);
+            float var4 = var1 * (1.0f + (var2 * (float) temp));
+            float var5 = var4 + (var3 * amb);
+            int res_heat = (int) (3.4f * ((var5 * (4f / (4f + htr)) * (1f / (1f + (htv * 0.002f)))) - 25f));
+
+            return res_heat;
+        }
+
+        /**
+         * This internal API is used to calculate the gas wait
+         */
+        public int _calc_gas_wait(int dur) {
+            int factor = 0;
+            int durval = 0xFF; // Max duration
+
+            if (dur >= 0xFC0) {
+               return durval; 
+            }
+            while (dur > 0x3F) {
+                dur = dur / 4;
+                factor += 1;
+            }
+            durval = (int)(dur + (factor * 64));
+            return durval;
         }
 
         public String printByteArray(byte[] values) {
@@ -755,65 +759,52 @@ public class BME680 {
 
     }
 
+    /**
+     * Driver for I2C connected BME680.
+     * :param ~busio.I2C i2c: The I2C bus the BME680 is connected to.
+     * :param int address: I2C device address. Defaults to :const:`0x77`
+     * :param bool debug: Print debug statements when `True`. Defaults to `False`
+     * :param int refresh_rate: Maximum number of readings per second. Faster property reads
+     * will be from the previous reading.
+     * **Quickstart: Importing and using the BME680**
+     * Here is an example of using the :class:`BMP680_I2C` class.
+     * First you will need to import the libraries to use the sensor
+     * .. code-block:: python
+     * import board
+     * import adafruit_bme680
+     * Once this is done you can define your ``board.I2C`` object and define your sensor object
+     * .. code-block:: python
+     * i2c = board.I2C()   # uses board.SCL and board.SDA
+     * bme680 = adafruit_bme680.Adafruit_BME680_I2C(i2c)
+     * You need to setup the pressure at sea level
+     * .. code-block:: python
+     * bme680.sea_level_pressure = 1013.25
+     * Now you have access to the :attr:`temperature`, :attr:`gas`, :attr:`relative_humidity`,
+     * :attr:`pressure` and :attr:`altitude` attributes
+     * .. code-block:: python
+     * temperature = bme680.temperature
+     * gas = bme680.gas
+     * relative_humidity = bme680.relative_humidity
+     * pressure = bme680.pressure
+     * altitude = bme680.altitude
+     */
     public class Adafruit_BME680_I2C extends Adafruit_BME680 {
 
-// class Adafruit_BME680_I2C(Adafruit_BME680):
-//     """Driver for I2C connected BME680.
-//     :param ~busio.I2C i2c: The I2C bus the BME680 is connected to.
-//     :param int address: I2C device address. Defaults to :const:`0x77`
-//     :param bool debug: Print debug statements when `True`. Defaults to `False`
-//     :param int refresh_rate: Maximum number of readings per second. Faster property reads
-//       will be from the previous reading.
-//     **Quickstart: Importing and using the BME680**
-//         Here is an example of using the :class:`BMP680_I2C` class.
-//         First you will need to import the libraries to use the sensor
-//         .. code-block:: python
-//             import board
-//             import adafruit_bme680
-//         Once this is done you can define your ``board.I2C`` object and define your sensor object
-//         .. code-block:: python
-//             i2c = board.I2C()   # uses board.SCL and board.SDA
-//             bme680 = adafruit_bme680.Adafruit_BME680_I2C(i2c)
-//         You need to setup the pressure at sea level
-//         .. code-block:: python
-//             bme680.sea_level_pressure = 1013.25
-//         Now you have access to the :attr:`temperature`, :attr:`gas`, :attr:`relative_humidity`,
-//         :attr:`pressure` and :attr:`altitude` attributes
-//         .. code-block:: python
-//             temperature = bme680.temperature
-//             gas = bme680.gas
-//             relative_humidity = bme680.relative_humidity
-//             pressure = bme680.pressure
-//             altitude = bme680.altitude
-//     """
-//     def __init__(
-//         self,
-//         i2c: I2C,
-//         address: int = 0x77,
-//         debug: bool = False,
-//         *,
-//         refresh_rate: int = 10,
-//     ) -> None:
-//         """Initialize the I2C device at the 'address' given"""
-//         from adafruit_bus_device import (
-//             i2c_device,
-//         )
-//         self._i2c = i2c_device.I2CDevice(i2c, address)
-//         self._debug = debug
-//         super().__init__(refresh_rate=refresh_rate)
         private I2CController i2cController;
         private int address = 0x77;
         private boolean debug = false;
         private int refresh_rate = 10;
 
+        /**
+         * Initialize the I2C device at the 'address' given
+         * Initialize the I2C device at the 'address' given
+         */
         public Adafruit_BME680_I2C(I2CController i2c, int address, boolean debug, int refresh_rate) throws Exception {
-
-//         """Initialize the I2C device at the 'address' given"""
-            // from adafruit_bus_device import (
-            //     i2c_device,
-            // )s
             super(refresh_rate);
-            this.i2cController = i2c_device.I2CDevice(i2c, address);
+            this.i2cController = i2c;
+            // = new I2CController(id, bus, address);
+            this.address = address;
+            // i2c_device.I2CDevice(i2c, address);
             this.debug = debug;
             this.refresh_rate = refresh_rate;
         }
@@ -862,74 +853,79 @@ public class BME680 {
 
     }
 
+    /**
+     * Driver for SPI connected BME680.
+     * 
+     * :param ~busio.SPI spi: SPI device
+     * :param ~digitalio.DigitalInOut cs: Chip Select
+     * :param bool debug: Print debug statements when `True`. Defaults to `False`
+     * :param int baudrate: Clock rate, default is :const:`100000`
+     * :param int refresh_rate: Maximum number of readings per second. Faster property reads
+     * will be from the previous reading.
+     * **Quickstart: Importing and using the BME680**
+     * Here is an example of using the :class:`BMP680_SPI` class.
+     * First you will need to import the libraries to use the sensor
+     * .. code-block:: python
+     *      import board
+     *      from digitalio import DigitalInOut, Direction
+     *      import adafruit_bme680
+     * Once this is done you can define your ``board.SPI`` object and define your sensor object
+     *  .. code-block:: python
+     *      cs = digitalio.DigitalInOut(board.D10)
+     *      spi = board.SPI()
+     *      bme680 = adafruit_bme680.Adafruit_BME680_SPI(spi, cs)
+     * You need to setup the pressure at sea level
+     *  .. code-block:: python
+     *      bme680.sea_level_pressure = 1013.25
+     * Now you have access to the :attr:`temperature`, :attr:`gas`, :attr:`relative_humidity`,
+     *  :attr:`pressure` and :attr:`altitude` attributes
+     *  .. code-block:: python
+     *      temperature = bme680.temperature
+     *      gas = bme680.gas
+     *      relative_humidity = bme680.relative_humidity
+     *      pressure = bme680.pressure
+     *      altitude = bme680.altitude
+     */
     public class Adafruit_BME680_SPI extends Adafruit_BME680 {
-// class Adafruit_BME680_SPI(Adafruit_BME680):
-//     """Driver for SPI connected BME680.
 
-//     :param ~busio.SPI spi: SPI device
-//     :param ~digitalio.DigitalInOut cs: Chip Select
-//     :param bool debug: Print debug statements when `True`. Defaults to `False`
-//     :param int baudrate: Clock rate, default is :const:`100000`
-//     :param int refresh_rate: Maximum number of readings per second. Faster property reads
-//       will be from the previous reading.
-//     **Quickstart: Importing and using the BME680**
-//         Here is an example of using the :class:`BMP680_SPI` class.
-//         First you will need to import the libraries to use the sensor
-//         .. code-block:: python
-//             import board
-//             from digitalio import DigitalInOut, Direction
-//             import adafruit_bme680
-//         Once this is done you can define your ``board.SPI`` object and define your sensor object
-//         .. code-block:: python
-//             cs = digitalio.DigitalInOut(board.D10)
-//             spi = board.SPI()
-//             bme680 = adafruit_bme680.Adafruit_BME680_SPI(spi, cs)
-//         You need to setup the pressure at sea level
-//         .. code-block:: python
-//             bme680.sea_level_pressure = 1013.25
-//         Now you have access to the :attr:`temperature`, :attr:`gas`, :attr:`relative_humidity`,
-//         :attr:`pressure` and :attr:`altitude` attributes
-//         .. code-block:: python
-//             temperature = bme680.temperature
-//             gas = bme680.gas
-//             relative_humidity = bme680.relative_humidity
-//             pressure = bme680.pressure
-//             altitude = bme680.altitude
-//     """
         private SPIController spi;
-        private DigitalInOut cs;
+        // private DigitalInOut cs;
+        private Object cs;
         private int baudrate = 100000;
         private boolean debug = false;
         private int refresh_rate = 10;
 
-        public Adafruit_BME680_SPI(SPIController spi, DigitalInOut cs, int baudrate) {
-//         from adafruit_bus_device import (
-//             spi_device,
-//         )
+// public Adafruit_BME680_SPI(SPIController spi, DigitalInOut cs, int baudrate) {
+        public Adafruit_BME680_SPI(SPIController spi, Object cs, int baudrate, int refresh_rate) throws Exception {
+            super(refresh_rate);
             this.spi = spi;
+            this.cs = cs;
 //         self._spi = spi_device.SPIDevice(spi, cs, baudrate=baudrate)
             this.debug = debug;
-//         super().__init__(refresh_rate=refresh_rate)
         }
 
         private byte[] read(int register, int length) {
-            byte[] result = new byte[] {};
+            byte[] result = new byte[]{};
             if (register != _BME680_REG_STATUS) {
-//             # _BME680_REG_STATUS exists in both SPI memory pages
-//             # For all other registers, we must set the correct memory page
-//             self._set_spi_mem_page(register)
+                // _BME680_REG_STATUS exists in both SPI memory pages
+                // For all other registers, we must set the correct memory page
+                this._set_spi_mem_page(register);
             }
 
             register = (register | 0x80) & 0xFF; // Read single, bit 7 high.
             try (final SPIController spi = this.spi) {
-                spi.
-//             spi.write(bytearray([register]))
-//             result = bytearray(length)
-//             spi.readinto(result)
+                spi.write(new byte[]{(byte) register});
+                result = new byte[length];
+                spi.readInto(result);
+                spi.read(result, 0, length);
+                // spi.write(bytearray([register]))
+                // result = bytearray(length)
+                // spi.readinto(result)
 //             if self._debug:
 //                 print(f"\t${register:02X} => {[hex(i) for i in result]}")
 //             return result                    
             } catch (Exception e) {
+
             }
             return result;
         }
@@ -943,12 +939,12 @@ public class BME680 {
 
             register &= 0x7F;  // Write, bit 7 low.
 
-            try (final SPI spi = this.spi) {
+            try (final SPIController spi = this.spi) {
                 byte[] buffer = new byte[2 * values.length];
 
                 for (int i = 0; i < values.length; i++) {
-                    buffer[2 * i] = (byte)(register + i);
-                    buffer[(2 * i) + 1] = (byte)(values[i] & 0xFF);
+                    buffer[2 * i] = (byte) (register + i);
+                    buffer[(2 * i) + 1] = (byte) (values[i] & 0xFF);
                 }
                 this.spi.write(buffer);
                 if (this.debug) {
@@ -956,7 +952,7 @@ public class BME680 {
                 }
 
             } catch (Exception e) {
-
+                System.out.println(e.getMessage());
             }
 
         }

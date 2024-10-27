@@ -34,7 +34,8 @@ public class I2CController implements AutoCloseable {
         // this.pi4j = Pi4J.newAutoContext();
         // I2CProvider i2CProvider = pi4j.provider("linuxfs-i2c");
         // I2CConfig i2cConfig = I2C.newConfigBuilder(pi4j).id("TCA9534").bus(1).device(0x3f).build();
-        try (final I2C tca9534Dev = this.i2CProvider.create(i2cConfig)) {
+        I2CController controller = new I2CController();
+        try (final I2C tca9534Dev = controller.i2CProvider.create(controller.i2cConfig)) {
 
             int config = tca9534Dev.readRegister(TCA9534_REG_ADDR_CFG);
             if (config < 0) {

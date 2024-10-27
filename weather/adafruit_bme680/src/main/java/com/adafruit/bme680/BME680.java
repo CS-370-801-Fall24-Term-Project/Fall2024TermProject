@@ -1,5 +1,6 @@
 package com.adafruit.bme680;
 
+import java.io.ByteArrayInputStream;
 import java.lang.Math;
 
 import java.util.Arrays;
@@ -573,11 +574,11 @@ public class BME680 {
         }
 
         public byte[] _read(int register, int length) {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         public void _write(int register, byte[] values) {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         /**
@@ -735,6 +736,23 @@ public class BME680 {
 //         return durval
         }
 
+        
+        public String printByteArray(byte[] values) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("\t$").append(String.format("%02X", values[0]));
+            sb.append(" <= [");
+            for (int i = 1; i < values.length; i++) {
+                sb.append(String.format("%02X", values[i]));
+                if (i < values.length - 1) {
+                    sb.append(", ");
+                }
+            }
+            sb.append("]");
+            return sb.toString();
+            // System.out.println(sb.toString());
+        }
+
+
     }
 
     private class Adafruit_BME680_I2C extends Adafruit_BME680 {
@@ -788,7 +806,7 @@ public class BME680 {
         private boolean debug = false;
         private int refresh_rate = 10;
 
-        public Adafruit_BME680_I2C(I2C i2c, int address, boolean debug, int refresh_rate) {
+        public Adafruit_BME680_I2C(I2C i2c, int address, boolean debug, int refresh_rate) throws Exception {
 
 //         """Initialize the I2C device at the 'address' given"""
             // from adafruit_bus_device import (
@@ -800,8 +818,11 @@ public class BME680 {
             this.refresh_rate = refresh_rate;
         }
 
+        /**
+         * Returns an array of 'length' bytes from the 'register'
+         */
         public byte[] _read(int register, int length) {
-//         """Returns an array of 'length' bytes from the 'register'"""
+//         """"""
 //         with self._i2c as i2c:
 //             i2c.write(bytes([register & 0xFF]))
 //             result = bytearray(length)
@@ -815,18 +836,27 @@ public class BME680 {
 //         """Writes an array of 'length' bytes to the 'register'"""
             try (this._i2c) {
 //             buffer = bytearray(2 * len(values))
-//             for i, value in enumerate(values):
-//                 buffer[2 * i] = register + i
-//                 buffer[2 * i + 1] = value
-//             i2c.write(buffer)
-//             if self._debug:
-//                 print(f"\t${values[0]:02X} <= {[hex(i) for i in values[1:]]}")
+            // for i, value in enumerate(values):
+            //     buffer[2 * i] = register + i
+            //     buffer[2 * i + 1] = value
+            byte[] buffer = new byte[2 * values.length];
+            for (int i = 0; i < values.length; i++) {
+                buffer[2 * i] = (byte) (register + i);
+                buffer[2 * i + 1] = (byte) values[i];
+            }
+            this._i2c.write(buffer);
+            if (this.debug) {
+                System.out.printf("\t$%02X <= [%s]", values[0], printByteArray(values));
+            }
+
             } catch (Exception e) {
 
             }
         }
 
     }
+
+
 
     public class Adafruit_BME680_SPI extends Adafruit_BME680 {
 // class Adafruit_BME680_SPI(Adafruit_BME680):

@@ -913,6 +913,7 @@ public class BME680 {
         }
 
         private byte[] read(int register, int length) {
+            byte[] result = new byte[] {};
             if (register != _BME680_REG_STATUS) {
 //             # _BME680_REG_STATUS exists in both SPI memory pages
 //             # For all other registers, we must set the correct memory page
@@ -921,16 +922,16 @@ public class BME680 {
 
             register = (register | 0x80) & 0xFF; // Read single, bit 7 high.
             try (final SPIController spi = this.spi) {
-                
-            } catch (Exception e) {
-            }
-//         with self._spi as spi:
+                spi.
 //             spi.write(bytearray([register]))
 //             result = bytearray(length)
 //             spi.readinto(result)
 //             if self._debug:
 //                 print(f"\t${register:02X} => {[hex(i) for i in result]}")
-//             return result    
+//             return result                    
+            } catch (Exception e) {
+            }
+            return result;
         }
 
         public void _write(int register, byte[] values) {

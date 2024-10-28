@@ -5,176 +5,149 @@ import com.pi4j.context.Context;
 import com.pi4j.io.i2c.I2C;
 import com.pi4j.io.i2c.I2CConfig;
 import com.pi4j.io.i2c.I2CProvider;
+import com.pi4j.io.i2c.I2CRegister;
+// import com.pi4j.io.i2c.I2CFactory;
+// import com.pi4j.io.i2c.I2CFacade;
+// import java.io.IOException;
 
 /**
  * @author John Maksuta
- * @since 10/26/2024
- * Copyright 2024
+ * @since 10/26/2024 Copyright 2024
  */
 public class I2CController implements AutoCloseable {
 
     private static final byte TCA9534_REG_ADDR_OUT_PORT = 0x01;
     private static final byte TCA9534_REG_ADDR_CFG = 0x03;
 
+    private String id;
+    private int bus;
+    private int address;
     private Context pi4j;
     private I2CProvider i2CProvider;
     private I2CConfig i2cConfig;
 
     public I2CController() {
-        super();
-        this.pi4j = Pi4J.newAutoContext();
-        this.i2CProvider = pi4j.provider("linuxfs-i2c");
-        this.i2cConfig = I2C.newConfigBuilder(pi4j).id("TCA9534").bus(1).device(0x3f).build();
+        this("I2C Device", 1, 0x77);
     }
 
     public I2CController(String id, int bus, int address) {
         super();
+        this.id = id;
+        this.bus = bus;
+        this.address = address;
         this.pi4j = Pi4J.newAutoContext();
         this.i2CProvider = pi4j.provider("linuxfs-i2c");
         this.i2cConfig = I2C.newConfigBuilder(pi4j).id(id).bus(bus).device(address).build();
     }
 
-    public static void main(String[] args) throws Exception {
-        if (args != null && args.length > 0) {
-            StringBuilder builder = new StringBuilder();
-            for (String arg : args) {
-                builder.append(arg);
-            }
-            System.out.printf("I2CController: args=%s\n", builder.toString());
-        }
-        // this.pi4j = Pi4J.newAutoContext();
-        // I2CProvider i2CProvider = pi4j.provider("linuxfs-i2c");
-        // I2CConfig i2cConfig = I2C.newConfigBuilder(pi4j).id("TCA9534").bus(1).device(0x3f).build();
-        I2CController controller = new I2CController("bcm2835",0,0x77);
-        try (final I2C tca9534Dev = controller.i2CProvider.create(controller.i2cConfig)) {
+    // public static byte setPin(byte currentState, int pin, I2C tca9534Dev, boolean high) {
+    //     byte newState;
+    //     if (high) {
+    //         newState = (byte) (currentState | (1 << pin));
+    //     } else {
+    //         newState = (byte) (currentState & ~(1 << pin));
+    //     }
 
-            int config = tca9534Dev.readRegister(TCA9534_REG_ADDR_CFG);
-            if (config < 0) {
-                throw new IllegalStateException(
-                        "Failed to read configuration from address 0x" + String.format("%02x", TCA9534_REG_ADDR_CFG));
-            }
+    //     System.out.println("Setting TCA9534 to new state " + asBinary(newState));
+    //     tca9534Dev.writeRegister(TCA9534_REG_ADDR_OUT_PORT, newState);
+    //     return newState;
+    // }
 
-            byte currentState = (byte) tca9534Dev.readRegister(TCA9534_REG_ADDR_OUT_PORT);
+    // public static String asBinary(byte b) {
+    //     StringBuilder sb = new StringBuilder();
 
-            if (config != 0x00) {
-                System.out.println("TCA9534 is not configured as OUTPUT, setting register 0x" + String
-                        .format("%02x", TCA9534_REG_ADDR_CFG) + " to 0x00");
-                currentState = 0x00;
-                tca9534Dev.writeRegister(TCA9534_REG_ADDR_OUT_PORT, currentState);
-                tca9534Dev.writeRegister(TCA9534_REG_ADDR_CFG, (byte) 0x00);
-            }
+    //     sb.append(((b >>> 7) & 1));
+    //     sb.append(((b >>> 6) & 1));
+    //     sb.append(((b >>> 5) & 1));
+    //     sb.append(((b >>> 4) & 1));
+    //     sb.append(((b >>> 3) & 1));
+    //     sb.append(((b >>> 2) & 1));
+    //     sb.append(((b >>> 1) & 1));
+    //     sb.append(((b >>> 0) & 1));
 
-            // bit 8, is pin 1 on the board itself, so set pins in reverse:
-            currentState = setPin(currentState, 8, tca9534Dev, true);
-            Thread.sleep(500L);
-            currentState = setPin(currentState, 8, tca9534Dev, false);
-            Thread.sleep(500L);
-
-            currentState = setPin(currentState, 7, tca9534Dev, true);
-            Thread.sleep(500L);
-            currentState = setPin(currentState, 7, tca9534Dev, false);
-            Thread.sleep(500L);
-        }
-    }
-
-    public static byte setPin(byte currentState, int pin, I2C tca9534Dev, boolean high) {
-        byte newState;
-        if (high) {
-            newState = (byte) (currentState | (1 << pin));
-        } else {
-            newState = (byte) (currentState & ~(1 << pin));
-        }
-
-        System.out.println("Setting TCA9534 to new state " + asBinary(newState));
-        tca9534Dev.writeRegister(TCA9534_REG_ADDR_OUT_PORT, newState);
-        return newState;
-    }
-
-    public static String asBinary(byte b) {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append(((b >>> 7) & 1));
-        sb.append(((b >>> 6) & 1));
-        sb.append(((b >>> 5) & 1));
-        sb.append(((b >>> 4) & 1));
-        sb.append(((b >>> 3) & 1));
-        sb.append(((b >>> 2) & 1));
-        sb.append(((b >>> 1) & 1));
-        sb.append(((b >>> 0) & 1));
-
-        return sb.toString();
-    }
+    //     return sb.toString();
+    // }
 
     @Override
     public void close() throws Exception {
-        // throw new UnsupportedOperationException("Not supported yet.");
         pi4j.shutdown();
     }
 
-    void write(byte[] buffer) throws Exception {
-        try (I2C tca9534Dev = i2CProvider.create(i2cConfig)) {
+    public int read(int register) throws Exception {
+        int result = -1;
+        Context context = Pi4J.newAutoContext();
+        try (I2C i2c = context.create(this.i2cConfig)) {
+            I2CRegister reg = i2c.register(register);
+            result = reg.read();
 
-            int config = tca9534Dev.readRegister(TCA9534_REG_ADDR_CFG);
-            if (config < 0) {
-                throw new IllegalStateException(
-                        "Failed to read configuration from address 0x" + String.format("%02x", TCA9534_REG_ADDR_CFG));
-            }
-
-            byte currentState = (byte) tca9534Dev.readRegister(TCA9534_REG_ADDR_OUT_PORT);
-
-            if (config != 0x00) {
-                System.out.println("TCA9534 is not configured as OUTPUT, setting register 0x" + String
-                        .format("%02x", TCA9534_REG_ADDR_CFG) + " to 0x00");
-                currentState = 0x00;
-                tca9534Dev.writeRegister(TCA9534_REG_ADDR_OUT_PORT, currentState);
-                tca9534Dev.writeRegister(TCA9534_REG_ADDR_CFG, (byte) 0x00);
-            }
-
-            // bit 8, is pin 1 on the board itself, so set pins in reverse:
-            currentState = setPin(currentState, 8, tca9534Dev, true);
-            Thread.sleep(500);
-            currentState = setPin(currentState, 8, tca9534Dev, false);
-            Thread.sleep(500);
-
-            currentState = setPin(currentState, 7, tca9534Dev, true);
-            Thread.sleep(500);
-            currentState = setPin(currentState, 7, tca9534Dev, false);
-            Thread.sleep(500);
+        } catch (Exception e) {
+            throw e;
         }
-        // throw new UnsupportedOperationException("Not supported yet.");
+        return result;
     }
 
-    public void readInto(byte[] buffer) throws Exception {
-        try (I2C tca9534Dev = i2CProvider.create(i2cConfig)) {
+    public byte readByte(int register) throws Exception {
+        byte result = (byte)-1;
+        Context context = Pi4J.newAutoContext();
+        try (I2C i2c = context.create(this.i2cConfig)) {
+            I2CRegister reg = i2c.register(register);
+            result = reg.readByte();
 
-            int config = tca9534Dev.readRegister(TCA9534_REG_ADDR_CFG);
-            if (config < 0) {
-                throw new IllegalStateException(
-                        "Failed to read configuration from address 0x" + String.format("%02x", TCA9534_REG_ADDR_CFG));
-            }
-
-            byte currentState = (byte) tca9534Dev.readRegister(TCA9534_REG_ADDR_OUT_PORT);
-
-            if (config != 0x00) {
-                System.out.println("TCA9534 is not configured as OUTPUT, setting register 0x" + String
-                        .format("%02x", TCA9534_REG_ADDR_CFG) + " to 0x00");
-                currentState = 0x00;
-                tca9534Dev.writeRegister(TCA9534_REG_ADDR_OUT_PORT, currentState);
-                tca9534Dev.writeRegister(TCA9534_REG_ADDR_CFG, (byte) 0x00);
-            }
-
-            // bit 8, is pin 1 on the board itself, so set pins in reverse:
-            currentState = setPin(currentState, 8, tca9534Dev, true);
-            Thread.sleep(500);
-            currentState = setPin(currentState, 8, tca9534Dev, false);
-            Thread.sleep(500);
-
-            currentState = setPin(currentState, 7, tca9534Dev, true);
-            Thread.sleep(500);
-            currentState = setPin(currentState, 7, tca9534Dev, false);
-            Thread.sleep(500);
+        } catch (Exception e) {
+            throw e;
         }
-        // throw new UnsupportedOperationException("Not supported yet.");
+        return result;
+    }
+
+    public void write(int register, byte data) throws Exception {
+        Context context = Pi4J.newAutoContext();
+        try (I2C i2c = context.create(this.i2cConfig)) {
+            I2CRegister reg = i2c.register(register);
+            int written = reg.write(data);
+            if (written < 1) {
+                throw new Exception(String.format("Data length = %d, bytes written = %d", 1, written));
+            }
+
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
+    public void write(int register, byte[] data) throws Exception {
+        Context context = Pi4J.newAutoContext();
+        try (I2C i2c = context.create(this.i2cConfig)) {
+            I2CRegister reg = i2c.register(register);
+            int written = reg.write(data);
+            if (written < data.length) {
+                throw new Exception(String.format("Data length = %d, bytes written = %d", data.length, written));
+            }
+
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
+    public int read() {
+        int result = -1;
+        Context context = Pi4J.newAutoContext();
+        try (I2C i2c = context.create(this.i2cConfig)) {
+            result = i2c.read();
+
+        } catch (Exception e) {
+            throw e;
+        }
+        return result;
+    }
+
+    public void readInto(int register, byte[] data) throws Exception {
+        Context context = Pi4J.newAutoContext();
+        try (I2C i2c = context.create(this.i2cConfig)) {
+            I2CRegister reg = i2c.register(register);
+            reg.read(data, 0, data.length);
+            
+        } catch (Exception e) {
+            throw e;
+        }
     }
 
 }

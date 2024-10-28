@@ -16,6 +16,7 @@
         <!-- DEPENDENCIES VERSIONS -->
         <slf4j.version>2.0.16</slf4j.version>
         <pi4j.version>2.7.0</pi4j.version>
+        <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
     </properties>
 
     <dependencies>
@@ -25,6 +26,21 @@
             <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
+        <!-- begin junit jupiter -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>5.10.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>5.10.0</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- end junit jupiter -->
         <!-- begin pi4j -->
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -67,6 +83,73 @@
         </dependency>
         <!-- end pi4j -->
     </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>    
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <testSourceDirectory>src/test/java</testSourceDirectory>   
+
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.11.0</version>
+                        <configuration>
+                            <source>17</source>
+                            <target>17</target>
+                            
+                            <encoding>UTF-8</encoding>
+                            <!-- <compilerArgs>
+                                <arg>-DdevMode=true</arg>
+                            </compilerArgs> -->
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                                <configuration>
+                                    <mainClass>com.adafruit.bme680.I2CController</mainClass>
+                                    <arguments>
+                                        <argument>"hello"</argument>
+                                        <argument>"world"</argument>
+                                    </arguments>
+                                    <vmArgs>-DdevMode=true</vmArgs>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 
 </project>

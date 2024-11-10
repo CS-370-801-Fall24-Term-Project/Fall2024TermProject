@@ -84,4 +84,24 @@ public class Adafruit_BME680_I2C extends Adafruit_BME680 {
         }
     }
 
+    @Override
+    public float getTemperature() throws Exception {
+        return this.temperature();
+    }
+
+    @Override
+    public int getGas() throws Exception {
+        return this.gas();
+    }
+
+    @Override
+    public float getHumidity() throws Exception {
+        return this.humidity();
+    }
+
+    @Override
+    public float getPressure() throws Exception {
+        return this.pressure();
+    }
+
 }

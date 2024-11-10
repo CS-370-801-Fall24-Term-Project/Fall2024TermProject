@@ -61,4 +61,79 @@ public class SensorControllerTest {
         }
     }
 
+    
+    @Test
+    @DisplayName("jmaksuta: test the getGas method")
+    public void test_getGas_method() {
+        boolean isPassed = false;
+        StringBuilder builder = new StringBuilder();
+        try {
+            this.controller = new SensorController();
+            int actual = this.controller.getGas();
+            String expected = "actual != 0";
+
+            isPassed = (actual != 0);
+
+            if (!isPassed) {
+                builder.append(String.format("expected=%s, actual=%f", expected, actual));
+            }
+        
+        } catch (Exception e) {
+            isPassed = false;
+            builder.append(e.getMessage());
+        } finally {
+            assertTrue(isPassed, String.format("The test failed for class %s, reason: %s", CLASS_NAME, builder.toString()));
+        }
+    }
+
+    
+    @Test
+    @DisplayName("jmaksuta: test the getHumidity method")
+    public void test_getHumidity_method() {
+        boolean isPassed = false;
+        StringBuilder builder = new StringBuilder();
+        try {
+            this.controller = new SensorController();
+            float actual = this.controller.getHumidity();
+            String expected = "actual != 0.0f";
+
+            isPassed = (actual != 0.0f);
+
+            if (!isPassed) {
+                builder.append(String.format("expected=%s, actual=%f", expected, actual));
+            }
+        
+        } catch (Exception e) {
+            isPassed = false;
+            builder.append(e.getMessage());
+        } finally {
+            assertTrue(isPassed, String.format("The test failed for class %s, reason: %s", CLASS_NAME, builder.toString()));
+        }
+    }
+
+    
+    @Test
+    @DisplayName("jmaksuta: test the getPressure method")
+    public void test_getPressure_method() {
+        boolean isPassed = false;
+        StringBuilder builder = new StringBuilder();
+        try {
+            this.controller = new SensorController();
+            float actual = this.controller.getPressure();
+            String expected = "actual != 0.0f";
+
+            isPassed = (actual != 0.0f);
+
+            if (!isPassed) {
+                builder.append(String.format("expected=%s, actual=%f", expected, actual));
+            }
+        
+        } catch (Exception e) {
+            isPassed = false;
+            builder.append(e.getMessage());
+        } finally {
+            assertTrue(isPassed, String.format("The test failed for class %s, reason: %s", CLASS_NAME, builder.toString()));
+        }
+    }
+
 }

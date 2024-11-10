@@ -647,4 +647,9 @@ public abstract class Adafruit_BME680 extends BME680 {
         return sb.toString();
     }
 
+    public abstract float getTemperature() throws Exception;
+    public abstract int getGas() throws Exception;
+    public abstract float getHumidity() throws Exception;
+    public abstract float getPressure() throws Exception;
+
 }

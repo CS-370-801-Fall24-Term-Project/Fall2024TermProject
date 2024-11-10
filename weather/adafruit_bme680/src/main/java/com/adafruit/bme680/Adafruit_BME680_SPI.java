@@ -104,4 +104,24 @@ public class Adafruit_BME680_SPI extends Adafruit_BME680 {
         this._write(_BME680_REG_STATUS, new byte[]{spi_mem_page});
     }
 
+    @Override
+    public float getTemperature() throws Exception {
+        return this.temperature();
+    }
+
+    @Override
+    public int getGas() throws Exception {
+        return this.gas();
+    }
+
+    @Override
+    public float getHumidity() throws Exception {
+        return this.humidity();
+    }
+
+    @Override
+    public float getPressure() throws Exception {
+        return this.pressure();
+    }
+
 }

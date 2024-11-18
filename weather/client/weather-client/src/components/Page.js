@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import "../App.css"
+// import axios from 'axios';
 import { sendAPIRequest } from '../util/restApi';
 import { useServerSettings } from "../util/ServerConfig";
 
@@ -13,18 +14,8 @@ export function Page(props) {
     timestamp: new Date().toLocaleString(),
   });
 
-  // const mocksensorData = {
-  //   temperature: 26.32,
-  //   gas: 12500,
-  //   humidity: 22.8,
-  //   pressure: 1020.3,
-  //   timestamp: new Date().toLocaleString(),
-  // };
-
   function processGetSensorDataSuccess(response, serverUrl) {
-    const sensorData = JSON.parse(response);
-    alert(sensorData);
-    setSensorData(sensorData);
+    setSensorData(response);
   }
 
   async function sendGetSensorDataRequest() {
@@ -38,94 +29,7 @@ export function Page(props) {
     }
   }
 
-  async function fetchSensorData() {
-    try {
-      // const headers = {
-      //   'Connection': 'keep-alive',
-      //   // Other headers as needed
-      // };
-      // const fetchOptions = {
-      //   method: "POST",
-      //   mode: 'no-cors',
-      //   headers: headers
-      // };
-      const headers = {
-        'Content-Type': 'application/json',
-        'Connection': 'keep-alive',
-        'Accept': '*/*',
-        'Content-Length': "0",
-        "Accept-Encoding": "gzip, deflate, br"
-        // Other headers as needed
-      };
-
-      const fetchOptions = {
-        method: "POST",
-        headers: headers,
-        // Consider removing 'mode: 'no-cors'' if CORS is not an issue
-        mode: 'no-cors' // or remove this line if CORS is not an issue
-      };
-      const response = await fetch('http://192.168.1.238:8080/sensordata', fetchOptions);
-      // if (!response.ok) {
-      //   throw new Error(`HTTP error! status: ${response.status}`);
-      // }
-      const data = await response;
-      if (data) {
-        data = response.json();
-      }
-      console.log(data);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
-  }
-
-  async function fetchData() {
-    try {
-      const headers = {
-        'Content-Type': 'application/json',
-        'Connection': 'keep-alive',
-        'Accept': '*/*',
-        'Content-Length': "0",
-        "Accept-Encoding": "gzip, deflate, br"
-        // Other headers as needed
-      };
-      const fetchOptions = {
-        method: "POST",
-        headers: headers,
-        body: {},
-        mode: 'no-cors' // or remove this line if CORS is not an issue
-      };
-      const dataToSend = null;
-      const response = await fetch('http://192.168.1.238:8080/helloworld', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        mode: "no-cors"
-        // ,
-        // body: JSON.stringify(dataToSend)
-      });
-      // const response = await fetch('http://192.168.1.238:8080/sensordata');
-      try {
-        const jsonData = await response.json();
-        alert(jsonData);
-      } catch (error) {
-        
-      }
-      try {
-        const textData = await response.text();
-        alert(textData);
-      } catch (error) {
-        
-      }
-
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
-  }
-
   const btnGetReadingClick = () => {
-    // fetchData();
-    // fetchSensorData();
     sendGetSensorDataRequest();
   };
 

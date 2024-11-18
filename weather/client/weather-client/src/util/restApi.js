@@ -6,7 +6,9 @@ export function getServerUrl() {
     const serverHost = location.hostname;
     const serverPort = location.port;
     const alternatePort = config.server_port; // process.env.SERVER_PORT;
-    return `${serverProtocol}\/\/${serverHost}:${(!alternatePort ? serverPort : alternatePort)}`;
+    const url = `${serverProtocol}\/\/${serverHost}:${(!alternatePort ? serverPort : alternatePort)}`;
+    // alert(url);
+    return url;
     /* eslint-enable */
 }
 
@@ -49,9 +51,21 @@ async function sendRequest(requestBody, serverUrl, endpoint, ...params) {
 function buildQueryString(...params) {
     let result = "";
     if (params != null && params.length > 0) {
-        result = params.reduce((queryString, [key, value]) => {
-            return queryString + `${key}=${encodeURIComponent(value)}`
-        });
+        for (let n = 0; n < params.length; n++) {
+            if (params[n] != null && params[n].length > 1) {
+                const [key, value] = params[n];
+                if (key !== null && value !== null) {
+                    result += `${key}=${encodeURIComponent(value)}&`;
+                }
+            }
+        }
+        // result = params.reduce((queryString, [key, value]) => {
+        //     if (key !== null && value !== null) {
+        //         return queryString + `${key}=${encodeURIComponent(value)}`;
+        //     } else {
+        //         return queryString;
+        //     }
+        // }, "");
     }
     return result;
 }

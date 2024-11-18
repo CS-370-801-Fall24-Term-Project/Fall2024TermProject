@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getServerUrl } from './restApi';
+import { sendAPIRequest, getServerUrl } from './restApi';
 
 export function useServerSettings(showMessage) {
 	const [serverUrl, setServerUrl] = useState(getServerUrl());

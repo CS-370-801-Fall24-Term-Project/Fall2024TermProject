@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from 'react';
+import "../App.css"
 // import { getServerUrl } from "../util/restApi";
+import { sendAPIRequest } from '../util/restApi';
 import { useServerSettings } from "../util/ServerConfig";
 
 export function Page(props) {
   const [serverSettings, processServerConfigSuccess] = useServerSettings(props.showMessage);
-  const [sensorData, setSensorData] = useState(null);
+  const [sensorData, setSensorData] = useState(mocksensorData);
 
-  // const sensorData = {
-  //   temperature: 26.32,
-  //   gas: 12500,
-  //   humidity: 22.8,
-  //   pressure: 1020.3,
-  //   timestamp: new Date().toLocaleString(),
-  // };
+  const mocksensorData = {
+    temperature: 26.32,
+    gas: 12500,
+    humidity: 22.8,
+    pressure: 1020.3,
+    timestamp: new Date().toLocaleString(),
+  };
 
   function processGetSensorDataSuccess(response, serverUrl) {
     const sensorData = JSON.parse(response);
@@ -20,13 +22,13 @@ export function Page(props) {
   }
 
   async function sendGetSensorDataRequest() {
-    const getSensorDataResponse = await sendAPIRequest({}, props.serverSettings.serverUrl);
+    const getSensorDataResponse = await sendAPIRequest({}, props.serverSettings.serverUrl, "sensordata", null);
     if (getSensorDataResponse) {
       processGetSensorDataSuccess(getSensorDataResponse, props.serverSettings.serverUrl);
     } else {
-        props.showMessage(`SensorData request to ${props.serverSettings.serverUrl} failed. Check the log for more details.`, 'error');
+      props.showMessage(`SensorData request to ${props.serverSettings.serverUrl} failed. Check the log for more details.`, 'error');
     }
-}
+  }
 
   useEffect(() => {
     sendGetSensorDataRequest();

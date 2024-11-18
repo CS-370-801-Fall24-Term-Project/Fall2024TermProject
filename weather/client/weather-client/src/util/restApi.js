@@ -1,11 +1,13 @@
 import config from '../config/config.json'
 
 export function getServerUrl() {
+    /* eslint-disable */
     const serverProtocol = location.protocol;
     const serverHost = location.hostname;
     const serverPort = location.port;
     const alternatePort = config.server_port; // process.env.SERVER_PORT;
     return `${serverProtocol}\/\/${serverHost}:${(!alternatePort ? serverPort : alternatePort)}`;
+    /* eslint-enable */
 }
 
 export async function sendAPIRequest(requestBody, serverUrl, endpoint, ...params) {

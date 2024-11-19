@@ -5,6 +5,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import com.cs370.project.sensor.SensorController;
+import com.cs370.project.sensor.SensorData;
+
 @RestController
 public class WeatherController {
     
@@ -26,6 +29,19 @@ public class WeatherController {
     @RequestMapping("/withParams")
     public String withParams(@RequestParam String param) {
         return String.format("param=%s", param);
+    }
+
+    @RequestMapping("/sensordata")
+    public SensorData getSensorData() {
+        SensorData data = new SensorData();
+        try {
+            SensorController controller = new SensorController();
+            data = new SensorData(controller.getTemperature(), controller.getGas(),
+                                        controller.getHumidity(), controller.getPressure());
+        } catch (Exception e) {
+            // TODO: log this exception
+        }
+        return data;
     }
     
 }

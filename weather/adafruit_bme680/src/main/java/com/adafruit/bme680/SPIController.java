@@ -4,13 +4,13 @@ import com.pi4j.Pi4J;
 import com.pi4j.context.Context;
 import com.pi4j.io.spi.SpiConfig;
 import com.pi4j.io.spi.SpiProvider;
-// import com.pi4j.Pi4J.PiGpio;
-// import com.pi4j.Pi4J.PiGpioSpiProvider;
 
 /**
  * @author John Maksuta
  * @since 10/26/2024
  * Copyright 2024
+ * 
+ * This class is under development.
  */
 public class SPIController implements AutoCloseable {
 

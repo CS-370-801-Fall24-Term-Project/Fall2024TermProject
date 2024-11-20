@@ -4,6 +4,12 @@ import com.adafruit.bme680.Adafruit_BME680;
 import com.adafruit.bme680.Adafruit_BME680_I2C;
 import com.adafruit.bme680.I2CController;
 
+/**
+ * @author John Maksuta
+ * @since 10/26/2024 Copyright 2024
+ * 
+ * This is the main public class used for controlling the Sensor device.
+ */
 public class Sensor {
 
     private static Sensor instance;

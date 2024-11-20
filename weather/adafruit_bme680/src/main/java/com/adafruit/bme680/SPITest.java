@@ -12,9 +12,9 @@ import com.pi4j.util.Console;
 import com.pi4j.util.StringUtil;
 
 /**
- * @author John Maksuta
- * @since 10/26/2024
- * Copyright 2024
+ * This is an example code for SPI communications from 
+ * Pi4J project
+ * https://github.com/Pi4J/pi4j-examples/blob/f8ebbe866a1c5809c5805f09fd678afb921aa5d1/src/main/java/com/pi4j/example/spi/SpiExample.java#L68
  */
 public class SPITest {
 

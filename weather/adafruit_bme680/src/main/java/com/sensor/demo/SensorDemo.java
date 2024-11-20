@@ -4,6 +4,13 @@ import com.adafruit.bme680.Adafruit_BME680;
 import com.adafruit.bme680.Adafruit_BME680_I2C;
 import com.adafruit.bme680.I2CController;
 
+/**
+ * @author John Maksuta
+ * @since 10/26/2024 Copyright 2024
+ * 
+ * Demo application using the code in this project to access and
+ * display the data from Adafruit_BME680
+ */
 public class SensorDemo {
 
     public static void main(String[] args) {

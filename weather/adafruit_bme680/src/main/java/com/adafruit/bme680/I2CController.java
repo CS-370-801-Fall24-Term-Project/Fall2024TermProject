@@ -6,9 +6,6 @@ import com.pi4j.io.i2c.I2C;
 import com.pi4j.io.i2c.I2CConfig;
 import com.pi4j.io.i2c.I2CProvider;
 import com.pi4j.io.i2c.I2CRegister;
-// import com.pi4j.io.i2c.I2CFactory;
-// import com.pi4j.io.i2c.I2CFacade;
-// import java.io.IOException;
 
 /**
  * @author John Maksuta
@@ -39,34 +36,6 @@ public class I2CController implements AutoCloseable {
         this.i2CProvider = pi4j.provider("linuxfs-i2c");
         this.i2cConfig = I2C.newConfigBuilder(pi4j).id(id).bus(bus).device(address).build();
     }
-
-    // public static byte setPin(byte currentState, int pin, I2C tca9534Dev, boolean high) {
-    //     byte newState;
-    //     if (high) {
-    //         newState = (byte) (currentState | (1 << pin));
-    //     } else {
-    //         newState = (byte) (currentState & ~(1 << pin));
-    //     }
-
-    //     System.out.println("Setting TCA9534 to new state " + asBinary(newState));
-    //     tca9534Dev.writeRegister(TCA9534_REG_ADDR_OUT_PORT, newState);
-    //     return newState;
-    // }
-
-    // public static String asBinary(byte b) {
-    //     StringBuilder sb = new StringBuilder();
-
-    //     sb.append(((b >>> 7) & 1));
-    //     sb.append(((b >>> 6) & 1));
-    //     sb.append(((b >>> 5) & 1));
-    //     sb.append(((b >>> 4) & 1));
-    //     sb.append(((b >>> 3) & 1));
-    //     sb.append(((b >>> 2) & 1));
-    //     sb.append(((b >>> 1) & 1));
-    //     sb.append(((b >>> 0) & 1));
-
-    //     return sb.toString();
-    // }
 
     @Override
     public void close() throws Exception {

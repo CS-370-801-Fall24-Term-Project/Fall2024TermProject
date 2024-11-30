@@ -1,0 +1,14 @@
+server {
+        listen 8088 default_server;
+        listen [::]:8088 default_server;
+
+        server_name weatherclient;
+
+        root /var/www/weather-client/build;
+
+        index index.html;
+
+        location / {
+                try_files $uri $uri/ =404;
+        }
+}
